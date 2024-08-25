@@ -9,6 +9,7 @@ out/
 
 # Docs
 docs/
+Later.doc
 
 # Dotenv file
 .env
