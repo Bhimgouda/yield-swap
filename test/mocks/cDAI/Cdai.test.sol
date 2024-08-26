@@ -83,9 +83,11 @@ contract CdaiTest is Test {
         _deposit(USER, Dai_DEPOSIT_AMOUNT);
 
         // Assert
-        uint256 expectedCdaiToBeMinted = (Dai_DEPOSIT_AMOUNT * Cdai.totalSupply()) / Dai.balanceOf(address(Cdai));
+        uint256 expectedCdaiToBeMinted = (Dai_DEPOSIT_AMOUNT *
+            Cdai.totalSupply()) / Dai.balanceOf(address(Cdai));
 
-        uint256 endingCdaiBalance = startingCdaiBalance + expectedCdaiToBeMinted;
+        uint256 endingCdaiBalance = startingCdaiBalance +
+            expectedCdaiToBeMinted;
 
         assertEq(Cdai.balanceOf(USER), endingCdaiBalance);
     }
@@ -96,7 +98,8 @@ contract CdaiTest is Test {
         _accrueInterest(INTEREST_AMOUNT);
 
         // Assert
-        uint256 expectedExchangeRate = (Dai_DEPOSIT_AMOUNT + INTEREST_AMOUNT) / Cdai.totalSupply();
+        uint256 expectedExchangeRate = (Dai_DEPOSIT_AMOUNT + INTEREST_AMOUNT) /
+            Cdai.totalSupply();
         assertEq(Cdai.exchangeRateStored(), expectedExchangeRate);
     }
 
@@ -127,20 +130,29 @@ contract CdaiTest is Test {
         assertEq(Cdai.accrualBlockNumber(), block.number);
     }
 
+
     //////////////////////
     // Internal Functions
     /////////////////////
 
-    function _deposit(address from, uint256 amount) internal prank(from) returns (uint256 CdaiAmount) {
+    function _deposit(
+        address from,
+        uint256 amount
+    ) internal prank(from) returns (uint256 CdaiAmount) {
         Dai.approve(address(Cdai), amount);
         return Cdai.deposit(amount);
     }
 
-    function _withdraw(address from, uint256 amount) internal prank(from) returns (uint256 daiAmount) {
+    function _withdraw(
+        address from,
+        uint256 amount
+    ) internal prank(from) returns (uint256 daiAmount) {
         return Cdai.withdraw(amount);
     }
 
-    function _accrueInterest(uint256 amount) internal prank(INTEREST_MANAGER) returns (uint256 currentExchangeRate) {
+    function _accrueInterest(
+        uint256 amount
+    ) internal prank(INTEREST_MANAGER) returns (uint256 currentExchangeRate) {
         Dai.approve(address(Cdai), amount);
         return Cdai.accrueInterest(amount);
     }

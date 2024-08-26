@@ -19,7 +19,7 @@ contract Cdai is ERC20 {
     // Exchange rate stored, Updates when interest is accrued
     uint256 private s_exchangeRate;
 
-    constructor(address dai) ERC20("Compoun DAI", "Cdai") {
+    constructor(address dai) ERC20("Compound DAI", "cDai") {
         DAI = IERC20(dai);
     }
 
@@ -28,7 +28,9 @@ contract Cdai is ERC20 {
         if (totalSupply() > 0) {
             // (x + dx) / x = (y + dy) / y
             // dy = (dx * y) / x
-            amountCdai = (amountDAI * totalSupply()) / DAI.balanceOf(address(this));
+            amountCdai =
+                (amountDAI * totalSupply()) /
+                DAI.balanceOf(address(this));
         } else {
             amountCdai = amountDAI;
         }
@@ -58,7 +60,9 @@ contract Cdai is ERC20 {
      * @param amountDAI Interest amount
      * @notice The exchange rate of a GYGP model only changes when the interest is being addedß
      */
-    function accrueInterest(uint256 amountDAI) external returns (uint256 currentExchangeRate) {
+    function accrueInterest(
+        uint256 amountDAI
+    ) external returns (uint256 currentExchangeRate) {
         DAI.transferFrom(msg.sender, address(this), amountDAI);
         s_accrualBlockNumber = block.number;
 
