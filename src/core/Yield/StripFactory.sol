@@ -1,21 +1,133 @@
-// SPDX-License-identifier; MIT
+// SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
 import {PrincipalToken} from "./PrincipalToken.sol";
 import {YieldToken} from "./YieldToken.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
-import "forge-std/console.sol";
+import {StringLib} from "../libraries/StringLib.sol";
+import {console} from "forge-std/console.sol";
+import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract StripFactory {
-    function createPtYt(
-        address sy,
-        uint256 expiry,
-        uint256 interestFee
-    ) external {
-        // PrincipalToken PT = new PrincipalToken();
+contract StripFactory is Ownable(msg.sender) {
+    using StringLib for string;
+    using StringLib for StringLib.slice;
+
+    string constant PT_NAME_PREFIX = "PT ";
+    string constant PT_SYMBOL_PREFIX = "PT-";
+    string constant YT_NAME_PREFIX = "YT ";
+    string constant YT_SYMBOL_PREFIX = "YT-";
+    string constant SY_NAME_BEYOND = "SY ";
+    string constant SY_SYMBOL_BEYOND = "SY-";
+    uint256 private constant MAX_INTEREST_FEE_RATE = 15e16; // 15%
+    uint256 private constant MIN_INTEREST_FEE_RATE = 25e15; // 2.5%
+
+    // Fee to be charged on interest earned
+    uint256 private s_interestFeeRate;
+
+    // Treasury address for receiving fees
+    address private s_treasury;
+
+    modifier interestFeeRateInRange(uint256 interestFeeRate) {
+        require(
+            MIN_INTEREST_FEE_RATE < interestFeeRate &&
+                interestFeeRate < MAX_INTEREST_FEE_RATE,
+            "Interest Fee Rate Out of Range"
+        );
+        _;
     }
 
-    function getSyMetadata(address sy) external view returns (string memory) {
-        return IERC20Metadata(sy).symbol();
+    modifier validTreasury(address treasury) {
+        require(treasury != address(0), "Treasury address cannot be Zero");
+        _;
+    }
+
+    constructor(
+        uint256 interestFeeRate,
+        address treasury
+    ) interestFeeRateInRange(interestFeeRate) validTreasury(treasury) {
+        s_interestFeeRate = interestFeeRate;
+        s_treasury = treasury;
+    }
+
+    function createPtYt(address sy, uint256 expiry) external {
+        (
+            string memory ptName,
+            string memory ptSymbol,
+            string memory ytName,
+            string memory ytSymbol
+        ) = _generatePtYtMetadata(sy);
+
+        PrincipalToken PT = new PrincipalToken(sy, ptName, ptSymbol, expiry);
+        YieldToken YT = new YieldToken(
+            sy,
+            address(PT),
+            ytName,
+            ytSymbol,
+            expiry
+        );
+
+        PT.initialize(address(YT));
+    }
+
+    function setInterestFeeRate(
+        uint256 newInterestFeeRate
+    ) external onlyOwner interestFeeRateInRange(newInterestFeeRate) {
+        s_interestFeeRate = newInterestFeeRate;
+    }
+
+    function setTreasury(
+        address newTreasury
+    ) external onlyOwner validTreasury(newTreasury) {
+        s_treasury = newTreasury;
+    }
+
+    /**
+     * @dev generates the pt and yt name based on the sy's metadata
+     */
+    function _generatePtYtMetadata(
+        address sy
+    )
+        internal
+        view
+        returns (
+            string memory ptName,
+            string memory ptSymbol,
+            string memory ytName,
+            string memory ytSymbol
+        )
+    {
+        (string memory _syName, string memory _sySymbol) = _getSyMetadata(sy);
+
+        StringLib.slice memory syName = _syName.toSlice();
+        StringLib.slice memory sySymbol = _sySymbol.toSlice();
+        StringLib.slice memory syNameBeyond = SY_NAME_BEYOND.toSlice();
+        StringLib.slice memory sySymbolBeyond = SY_SYMBOL_BEYOND.toSlice();
+
+        ptName = StringLib.concat(
+            PT_NAME_PREFIX.toSlice(),
+            syName.beyond(syNameBeyond)
+        );
+
+        ptSymbol = StringLib.concat(
+            PT_SYMBOL_PREFIX.toSlice(),
+            sySymbol.beyond(sySymbolBeyond)
+        );
+
+        ytName = StringLib.concat(
+            YT_NAME_PREFIX.toSlice(),
+            syName.beyond(syNameBeyond)
+        );
+
+        ytSymbol = StringLib.concat(
+            YT_SYMBOL_PREFIX.toSlice(),
+            sySymbol.beyond(sySymbolBeyond)
+        );
+    }
+
+    function _getSyMetadata(
+        address sy
+    ) internal view returns (string memory name, string memory symbol) {
+        name = IERC20Metadata(sy).name();
+        symbol = IERC20Metadata(sy).symbol();
     }
 }

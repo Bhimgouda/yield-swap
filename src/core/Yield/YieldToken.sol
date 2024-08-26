@@ -10,7 +10,11 @@ import {InterestManager} from "./Manager/InterestManager.sol";
  * holding users underlying SY, minting PT's, managing accruedInterest and rewards
  */
 contract YieldToken is ERC20, InterestManager, RewardManager {
-    constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
-
-    
+    constructor(
+        address sy,
+        address pt,
+        string memory name,
+        string memory symbol,
+        uint256 expiry
+    ) ERC20(name, symbol) {}
 }

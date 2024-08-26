@@ -6,19 +6,28 @@ import {DeployStripFactory} from "../../../script/DeployStripFactory.s.sol";
 import {IStripFactory} from "../../../src/interfaces/Icore/IStripFactory.sol";
 import {console} from "forge-std/console.sol";
 import {HelperConfig} from "../../../script/HelperConfig.sol";
+import {DeploySyCompound} from "../../../script/SYCompound/DeploySYCompound.s.sol";
 
 contract StripFactoryTest is Test {
     IStripFactory stripFactory;
+    address syCompound;
 
     function setUp() external {
+        DeploySyCompound deploySyCompound = new DeploySyCompound();
+        syCompound = deploySyCompound.run();
+
         DeployStripFactory deployStripFactory = new DeployStripFactory();
         stripFactory = IStripFactory(deployStripFactory.run());
     }
 
     function testSomething() external {
-        HelperConfig helperConfig = new HelperConfig();
-        address cdaiToken = helperConfig.getConfig().yieldBearingToken.token;
+        (
+            string memory ptName,
+            string memory ptSymbol,
+            string memory ytName,
+            string memory ytSymbol
+        ) = stripFactory._generatePtYtMetadata(syCompound);
 
-        console.log(stripFactory.getSyMetadata(cdaiToken));
+        console.log(ptName, ptSymbol, ytName, ytSymbol);
     }
 }
