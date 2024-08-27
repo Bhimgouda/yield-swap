@@ -27,6 +27,7 @@ contract PrincipalToken is ERC20 {
     ) ERC20(name, symbol) {
         i_sy = sy;
         i_expiry = expiry;
+        i_factory = msg.sender;
     }
 
     function initialize(address yt) external onlyFactory {

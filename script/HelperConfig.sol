@@ -14,6 +14,12 @@ interface IUnderlyingToken {
 
 interface IYieldBearingToken {
     function deposit(uint256 amountDAI) external returns (uint256 amountCdai);
+
+    function exchangeRateStored() external view returns (uint256);
+
+    function accrueInterest(
+        uint256 amountDAI
+    ) external returns (uint256 currentExchangeRate);
 }
 
 contract HelperConfig is Script {
@@ -100,6 +106,7 @@ contract HelperConfig is Script {
             address user = makeAddr(userNames[i]);
             vm.deal(user, 1000 ether);
             uint256 UNDERLYING_TOKEN_AMOUNT = 100000e18;
+            uint256 DEPOSIT_AMOUNT = 1000e18;
 
             vm.startPrank(user);
             IUnderlyingToken(yieldBearingToken.underlying).mint(
@@ -110,9 +117,16 @@ contract HelperConfig is Script {
                 yieldBearingToken.token,
                 UNDERLYING_TOKEN_AMOUNT
             );
-            IYieldBearingToken(yieldBearingToken.token).deposit(
-                UNDERLYING_TOKEN_AMOUNT
-            );
+            IYieldBearingToken(yieldBearingToken.token).deposit(DEPOSIT_AMOUNT);
+
+            if (i == users.length - 1) {
+                // Interest Accrued
+                uint256 INTEREST_AMOUNT = 1000e18;
+                IYieldBearingToken(yieldBearingToken.token).accrueInterest(
+                    INTEREST_AMOUNT
+                );
+            }
+
             vm.stopPrank();
 
             users[i] = user;

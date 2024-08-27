@@ -8,7 +8,7 @@ import {StringLib} from "../libraries/StringLib.sol";
 import {console} from "forge-std/console.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract StripFactory is Ownable(msg.sender) {
+contract PtYtFactory is Ownable(msg.sender) {
     using StringLib for string;
     using StringLib for StringLib.slice;
 
@@ -49,7 +49,10 @@ contract StripFactory is Ownable(msg.sender) {
         s_treasury = treasury;
     }
 
-    function createPtYt(address sy, uint256 expiry) external {
+    function createPtYt(
+        address sy,
+        uint256 expiry
+    ) external returns (address pt, address yt) {
         (
             string memory ptName,
             string memory ptSymbol,
@@ -58,6 +61,7 @@ contract StripFactory is Ownable(msg.sender) {
         ) = _generatePtYtMetadata(sy);
 
         PrincipalToken PT = new PrincipalToken(sy, ptName, ptSymbol, expiry);
+
         YieldToken YT = new YieldToken(
             sy,
             address(PT),
@@ -67,6 +71,9 @@ contract StripFactory is Ownable(msg.sender) {
         );
 
         PT.initialize(address(YT));
+
+        pt = address(PT);
+        yt = address(YT);
     }
 
     function setInterestFeeRate(
@@ -129,5 +136,9 @@ contract StripFactory is Ownable(msg.sender) {
     ) internal view returns (string memory name, string memory symbol) {
         name = IERC20Metadata(sy).name();
         symbol = IERC20Metadata(sy).symbol();
+    }
+
+    function interestFeeRate() external view returns (uint256) {
+        return s_interestFeeRate;
     }
 }

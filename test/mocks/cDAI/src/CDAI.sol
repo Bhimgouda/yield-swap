@@ -8,8 +8,11 @@ pragma solidity 0.8.24;
 
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {Test, console} from "forge-std/Test.sol";
+import {PMath} from "../../../../src/core/libraries/math/PMath.sol";
 
 contract Cdai is ERC20 {
+    using PMath for uint256;
     // Allowed DAI token
     IERC20 private immutable DAI;
 
@@ -17,7 +20,7 @@ contract Cdai is ERC20 {
     uint256 private s_accrualBlockNumber;
 
     // Exchange rate stored, Updates when interest is accrued
-    uint256 private s_exchangeRate;
+    uint256 private s_exchangeRate = 1e18;
 
     constructor(address dai) ERC20("Compound DAI", "cDai") {
         DAI = IERC20(dai);
@@ -67,7 +70,10 @@ contract Cdai is ERC20 {
         s_accrualBlockNumber = block.number;
 
         // Calculate the exchange rate 1 Cdai = ? DAI
-        currentExchangeRate = DAI.balanceOf(address(this)) / totalSupply();
+        currentExchangeRate = DAI.balanceOf(address(this)).divDown(
+            totalSupply()
+        );
+        console.log(currentExchangeRate);
         s_exchangeRate = currentExchangeRate;
     }
 
