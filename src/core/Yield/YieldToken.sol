@@ -29,9 +29,9 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     IPrincipalToken private immutable PT;
     uint256 private immutable i_expiry;
 
-    // This is to compare current exchange rate (alias to PY index)
-    uint256 private s_lastExchangeRate;
-    uint256 private s_exchangeRateUpdatedBlock;
+    // This is the read form of currentExchangeRate() which gets updated at most function calls(every other block)
+    uint256 private s_exchangeRate;
+    uint256 private s_exchangeRateBlock;
 
     constructor(
         address sy,
@@ -61,10 +61,21 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     ) external isNotExpired returns (uint256 amountPt, uint256 amountYt) {
         SY.transferFrom(msg.sender, address(this), amountSy);
 
-        (amountYt, amountPt) = previewStrip(amountSy);
+        (amountYt, amountPt) = previewStripSy(amountSy);
 
         _mint(receiver, amountYt);
         PT.mintByYt(receiver, amountPt);
+    }
+
+    /**
+     * @param amountPt PT amount to Burn and Redeem equivalent worth of SY in terms of the accounting asset
+     * @notice Can only be called after expiry/maturity
+     */
+    function redeemSy(
+        address receiver,
+        uint256 amountPt
+    ) external isExpired returns (uint256 amountSy) {
+        return _redeemSy(receiver, amountPt, 0, true);
     }
 
     /**
@@ -72,66 +83,49 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
      * @param receiver amountSy receiver
      * @param amountPt amount pt to Burn
      * @param amountYt amount yt to Burn
-  
      */
-    function redeemSy(
+    function redeemSyBeforeExpiry(
         address receiver,
         uint256 amountPt,
         uint256 amountYt
     ) external isNotExpired returns (uint256 amountSy) {
-        // Burns PT and YT
-        // Transfers equivalent worth of SY in terms of the accounting asset
-
-        _burn(msg.sender, amountYt);
-        PT.burnByYt(msg.sender, amountPt);
-
-        // Need to also subtract the interest accrued
+        return _redeemSy(receiver, amountPt, amountYt, false);
     }
 
-    /**
-     *
-     * @param amountPt PT amount to Burn and Redeem equivalent worth of SY in terms of the accounting asset
-     * @notice Can only be called after expiry/maturity
-     */
-    function redeemSyByPt(
+    function _redeemSy(
         address receiver,
-        uint256 amountPt
-    ) external isExpired returns (uint256 amountSy) {
-        PT.burnByYt(msg.sender, amountPt);
+        uint256 amountPt,
+        uint256 amountYt,
+        bool expired
+    ) internal returns (uint256 amountSy) {
+        if (!expired) {
+            require(amountPt == amountYt, "Unequal amounts of PT and YT");
+            _burn(msg.sender, amountYt);
+        }
 
-        amountSy = previewRedeemSyByPt(amountPt);
+        PT.burnByYt(msg.sender, amountPt);
+        amountSy = previewRedeemSy(amountPt);
         SY.transfer(receiver, amountSy);
     }
 
-    function _currentExchangeRate() internal returns (uint256) {
-        uint256 currentExchangeRate = SY.exchangeRate();
-        uint256 lastExchangeRate = s_lastExchangeRate;
-
-        if (currentExchangeRate == s_lastExchangeRate) return lastExchangeRate;
-
-        currentExchangeRate = PMath.max(currentExchangeRate, lastExchangeRate);
-        s_lastExchangeRate = currentExchangeRate;
-
-        return currentExchangeRate;
+    function _currentExchangeRate()
+        internal
+        returns (uint256 currentExchangeRate)
+    {
+        currentExchangeRate = PMath.max(SY.exchangeRate(), s_exchangeRate);
+        s_exchangeRate = currentExchangeRate;
     }
 
-    // /**
-    //  *
-    //  *@dev to make the YT untransferrable after expiry
-    //  */
-    // function _transfer(
-    //     address from,
-    //     address to,
-    //     uint256 value
-    // ) internal override isNotExpired {
-    //     super._transfer(from, to, value);
-    // }
+    /*///////////////////////////////////////////////////////////////
+                            INTEREST & REWARD RELATED FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /*///////////////////////////////////////////////////////////////
                             Preview-Related FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function previewStrip(
+    // Might need to add expiry modifiers for these public view
+    function previewStripSy(
         uint256 amountSy
     ) public view returns (uint256 amountPt, uint256 amountYt) {
         uint256 currentExchangeRate = SY.exchangeRate();
@@ -142,15 +136,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         amountPt = amountYt;
     }
 
-    function previewRedeem(
-        uint256 amountPt
-    ) public view returns (uint256 amountSy) {
-        // Formula
-        // amountSy = amountPt * (1/exchangeRate) (in terms of accounting asset)
-        amountSy = amountPt.mulDown(PMath.ONE.divDown(SY.exchangeRate()));
-    }
-
-    function previewRedeemSyByPt(
+    function previewRedeemSy(
         uint256 amountPt
     ) public view returns (uint256 amountSy) {
         // Formula

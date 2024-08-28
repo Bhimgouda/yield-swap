@@ -61,7 +61,7 @@ contract Cdai is ERC20 {
     /**
      *
      * @param amountDAI Interest amount
-     * @notice The exchange rate of a GYGP model only changes when the interest is being addedß
+     * @notice The exchange rate of a GYGP model only changes when the interest is being added
      */
     function accrueInterest(
         uint256 amountDAI

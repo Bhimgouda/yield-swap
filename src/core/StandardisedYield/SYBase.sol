@@ -12,17 +12,22 @@ import {IStandardizedYieldToken} from "../../interfaces/Icore/IStandardizedYield
 abstract contract SYBase is ERC20, IStandardizedYieldToken {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
-    function deposit(address receiver, address tokenIn, uint256 amountTokenToDeposit, uint256 minSharesOut)
-        external
-        payable
-        returns (uint256 amountSharesOut)
-    {
+    function deposit(
+        address receiver,
+        address tokenIn,
+        uint256 amountTokenToDeposit,
+        uint256 minSharesOut
+    ) external payable returns (uint256 amountSharesOut) {
         // Checks
         require(isValidTokenIn(tokenIn), "Invalid TokenIn");
         require(amountTokenToDeposit > 0, "Zero Deposit");
 
         // Tranfer Token In
-        IERC20(tokenIn).transferFrom(msg.sender, address(this), amountTokenToDeposit);
+        IERC20(tokenIn).transferFrom(
+            msg.sender,
+            address(this),
+            amountTokenToDeposit
+        );
 
         // Calculate Shares out
         amountSharesOut = _deposit(amountTokenToDeposit);
@@ -30,7 +35,13 @@ abstract contract SYBase is ERC20, IStandardizedYieldToken {
 
         // Mint shares
         _mint(receiver, amountSharesOut);
-        emit Deposit(msg.sender, receiver, tokenIn, amountTokenToDeposit, amountSharesOut);
+        emit Deposit(
+            msg.sender,
+            receiver,
+            tokenIn,
+            amountTokenToDeposit,
+            amountSharesOut
+        );
     }
 
     function redeem(
@@ -52,12 +63,22 @@ abstract contract SYBase is ERC20, IStandardizedYieldToken {
         IERC20(tokenOut).transfer(receiver, amountTokenOut);
 
         _burn(msg.sender, amountSharesToRedeem);
-        emit Redeem(msg.sender, receiver, tokenOut, amountSharesToRedeem, amountTokenOut);
+        emit Redeem(
+            msg.sender,
+            receiver,
+            tokenOut,
+            amountSharesToRedeem,
+            amountTokenOut
+        );
     }
 
-    function _deposit(uint256 amounTokenToDeposit) internal pure virtual returns (uint256 amountSharesOut);
+    function _deposit(
+        uint256 amounTokenToDeposit
+    ) internal view virtual returns (uint256 amountSharesOut);
 
-    function _redeem(uint256 amountSharesToRedeeem) internal pure virtual returns (uint256 amountTokenOut);
+    function _redeem(
+        uint256 amountSharesToRedeeem
+    ) internal view virtual returns (uint256 amountTokenOut);
 
     // Exchange rate
 
@@ -69,40 +90,56 @@ abstract contract SYBase is ERC20, IStandardizedYieldToken {
 
     function getTokensIn() external view virtual returns (address[] memory res);
 
-    function getTokensOut() external view virtual returns (address[] memory res);
+    function getTokensOut()
+        external
+        view
+        virtual
+        returns (address[] memory res);
 
     function isValidTokenIn(address token) public view virtual returns (bool);
 
     function isValidTokenOut(address token) public view virtual returns (bool);
 
-    function previewDeposit(address tokenIn, uint256 amountTokenToDeposit)
-        external
-        view
-        virtual
-        returns (uint256 amountSharesOut);
+    function previewDeposit(
+        address tokenIn,
+        uint256 amountTokenToDeposit
+    ) external view virtual returns (uint256 amountSharesOut);
 
-    function previewRedeem(address tokenOut, uint256 amountSharesToRedeem)
-        external
-        view
-        virtual
-        returns (uint256 amountTokenOut)
-    {}
+    function previewRedeem(
+        address tokenOut,
+        uint256 amountSharesToRedeem
+    ) external view virtual returns (uint256 amountTokenOut) {}
 
     function assetInfo()
         external
         view
         virtual
-        returns (AssetType assetType, address assetAddress, uint8 assetDecimals);
+        returns (
+            AssetType assetType,
+            address assetAddress,
+            uint8 assetDecimals
+        );
 
     // Reward Related
 
-    function claimRewards(address user) external virtual returns (uint256[] memory rewardAmounts);
+    function claimRewards(
+        address user
+    ) external virtual returns (uint256[] memory rewardAmounts);
 
-    function accruedRewards(address user) external view virtual returns (uint256[] memory rewardAmounts);
+    function accruedRewards(
+        address user
+    ) external view virtual returns (uint256[] memory rewardAmounts);
 
-    function rewardIndexesCurrent() external virtual returns (uint256[] memory indexes);
+    function rewardIndexesCurrent()
+        external
+        virtual
+        returns (uint256[] memory indexes);
 
-    function rewardIndexesStored() external view virtual returns (uint256[] memory indexes);
+    function rewardIndexesStored()
+        external
+        view
+        virtual
+        returns (uint256[] memory indexes);
 
     function getRewardTokens() external view virtual returns (address[] memory);
 }

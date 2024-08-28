@@ -2,12 +2,18 @@
 pragma solidity 0.8.24;
 
 import {SYBase} from "../../SYBase.sol";
-import {ICdai} from "./ICdai.sol";
+import {ICdai} from "../../../../interfaces/Icore/ICdai.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
+import {TokenDecimals} from "../../../libraries/TokenDecimals.sol";
 
 contract SYCompound is SYBase {
+    using TokenDecimals for uint256;
+
     // Yield Bearing Token Address
-    address private immutable i_Cdai;
+    address private immutable i_cdai;
+
+    // cdai has 8 decimals
+    uint8 private immutable i_cdaiDecimals;
 
     // Underlying asset of the Yield Bearing Token (Accounting asset in case of GYGP model)
     address private immutable underlying;
@@ -16,15 +22,16 @@ contract SYCompound is SYBase {
      *
      * @param name SY Token name
      * @param symbol SY Token symbol
-     * @param Cdai Corresponding Yield Bearing Token address
+     * @param cdai Corresponding Yield Bearing Token address
      */
     constructor(
         string memory name,
         string memory symbol,
-        address Cdai
+        address cdai
     ) SYBase(name, symbol) {
-        i_Cdai = Cdai;
-        underlying = ICdai(Cdai).underlying();
+        i_cdai = cdai;
+        underlying = ICdai(cdai).underlying();
+        i_cdaiDecimals = IERC20Metadata(cdai).decimals();
     }
 
     /**
@@ -33,9 +40,12 @@ contract SYCompound is SYBase {
      */
     function _deposit(
         uint256 amountTokenToDeposit
-    ) internal pure override returns (uint256 amountSharesOut) {
+    ) internal view override returns (uint256 amountSharesOut) {
         // This is a 1:1 SY token for GYGP yield-bearing Token
-        amountSharesOut = amountTokenToDeposit;
+        amountSharesOut = amountTokenToDeposit.standardize(
+            i_cdaiDecimals,
+            decimals()
+        );
     }
 
     /**
@@ -44,17 +54,22 @@ contract SYCompound is SYBase {
      */
     function _redeem(
         uint256 amountSharesToRedeem
-    ) internal pure override returns (uint256 amountTokenOut) {
+    ) internal view override returns (uint256 amountTokenOut) {
         // This is a 1:1 SY token for GYGP yield-bearing Token
-        amountTokenOut = amountSharesToRedeem;
+        amountTokenOut = amountSharesToRedeem.standardize(
+            decimals(),
+            i_cdaiDecimals
+        );
     }
 
     /**
      * @dev Provides the exchange rate of the Yield bearing token against it's underlying asset
      * @notice Increase in exhange rate == Interest accrued by the Yield bearing token.
+     *
+     * @dev The cdai exchange rate had 8 decimals (alike the token decimals). Plus has been scaled by 1e18
      */
     function exchangeRate() external view override returns (uint256 res) {
-        return ICdai(i_Cdai).exchangeRateStored();
+        return ICdai(i_cdai).exchangeRateStored().standardize(26, 18);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -82,7 +97,7 @@ contract SYCompound is SYBase {
     //////////////////////////////////////////////////////////////*/
 
     function yieldToken() external view override returns (address) {
-        return i_Cdai;
+        return i_cdai;
     }
 
     function getTokensIn()
@@ -91,7 +106,7 @@ contract SYCompound is SYBase {
         override
         returns (address[] memory res)
     {
-        res[0] = i_Cdai;
+        res[0] = i_cdai;
     }
 
     function getTokensOut()
@@ -100,17 +115,17 @@ contract SYCompound is SYBase {
         override
         returns (address[] memory res)
     {
-        res[0] = i_Cdai;
+        res[0] = i_cdai;
     }
 
     function isValidTokenIn(address token) public view override returns (bool) {
-        return token == i_Cdai;
+        return token == i_cdai;
     }
 
     function isValidTokenOut(
         address token
     ) public view override returns (bool) {
-        return token == i_Cdai;
+        return token == i_cdai;
     }
 
     function assetInfo()
@@ -119,7 +134,7 @@ contract SYCompound is SYBase {
         override
         returns (AssetType assetType, address assetAddress, uint8 assetDecimals)
     {
-        return (AssetType.TOKEN, underlying, IERC20Metadata(i_Cdai).decimals());
+        return (AssetType.TOKEN, underlying, i_cdaiDecimals);
     }
 
     /*///////////////////////////////////////////////////////////////

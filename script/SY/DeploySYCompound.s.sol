@@ -4,13 +4,16 @@ pragma solidity 0.8.24;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {SYCompound} from "../../src/core/StandardisedYield/implementations/compound/SYCompound.sol";
-import {HelperConfig} from "../HelperConfig.sol";
+import {HelperConfig} from "../helpers/HelperConfig.s.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract DeploySyCompound is Script {
     function run() external returns (address) {
         HelperConfig helperConfig = new HelperConfig();
-        address cDaiToken = helperConfig.getConfig().yieldBearingToken.token;
+        address cDaiToken = helperConfig
+            .getConfig()
+            .yieldBearingTokens[0]
+            .token;
 
         vm.startBroadcast();
         SYCompound syCompound = new SYCompound(
