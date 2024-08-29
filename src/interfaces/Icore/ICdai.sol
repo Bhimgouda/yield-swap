@@ -1,9 +1,9 @@
 // SPDX-License-Identifier: MIT
 pragma solidity ^0.8.24;
 
-import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
+import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
-interface ICdai is IERC20 {
+interface ICdai is IERC20Metadata {
     function mint(uint mintAmount) external returns (uint);
 
     function redeem(uint redeemTokens) external returns (uint);

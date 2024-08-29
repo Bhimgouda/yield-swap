@@ -51,7 +51,11 @@ interface IStandardizedYieldToken is IERC20Metadata {
     }
 
     /// @dev Emitted when (`user`) claims their rewards
-    event ClaimRewards(address indexed user, address[] rewardTokens, uint256[] rewardAmounts);
+    event ClaimRewards(
+        address indexed user,
+        address[] rewardTokens,
+        uint256[] rewardAmounts
+    );
 
     /**
      * @notice mints an amount of shares by depositing a base token.
@@ -65,10 +69,12 @@ interface IStandardizedYieldToken is IERC20Metadata {
      * Requirements:
      * - (`tokenIn`) must be a valid base token.
      */
-    function deposit(address receiver, address tokenIn, uint256 amountTokenToDeposit, uint256 minSharesOut)
-        external
-        payable
-        returns (uint256 amountSharesOut);
+    function deposit(
+        address receiver,
+        address tokenIn,
+        uint256 amountTokenToDeposit,
+        uint256 minSharesOut
+    ) external payable returns (uint256 amountSharesOut);
 
     /**
      * @notice redeems an amount of base tokens by burning some shares
@@ -108,18 +114,25 @@ interface IStandardizedYieldToken is IERC20Metadata {
      * Emits a `ClaimRewards` event
      * See {getRewardTokens} for list of reward tokens
      */
-    function claimRewards(address user) external returns (uint256[] memory rewardAmounts);
+    function claimRewards(
+        address user
+    ) external returns (uint256[] memory rewardAmounts);
 
     /**
      * @notice get the amount of unclaimed rewards for (`user`)
      * @param user the user to check for
      * @return rewardAmounts an array of reward amounts in the same order as `getRewardTokens`
      */
-    function accruedRewards(address user) external view returns (uint256[] memory rewardAmounts);
+    function accruedRewards(
+        address user
+    ) external view returns (uint256[] memory rewardAmounts);
 
     function rewardIndexesCurrent() external returns (uint256[] memory indexes);
 
-    function rewardIndexesStored() external view returns (uint256[] memory indexes);
+    function rewardIndexesStored()
+        external
+        view
+        returns (uint256[] memory indexes);
 
     /**
      * @notice returns the list of reward token addresses
@@ -145,15 +158,15 @@ interface IStandardizedYieldToken is IERC20Metadata {
 
     function isValidTokenOut(address token) external view returns (bool);
 
-    function previewDeposit(address tokenIn, uint256 amountTokenToDeposit)
-        external
-        view
-        returns (uint256 amountSharesOut);
+    function previewDeposit(
+        address tokenIn,
+        uint256 amountTokenToDeposit
+    ) external view returns (uint256 amountSharesOut);
 
-    function previewRedeem(address tokenOut, uint256 amountSharesToRedeem)
-        external
-        view
-        returns (uint256 amountTokenOut);
+    function previewRedeem(
+        address tokenOut,
+        uint256 amountSharesToRedeem
+    ) external view returns (uint256 amountTokenOut);
 
     /**
      * @notice This function contains information to interpret what the asset is
@@ -162,5 +175,12 @@ interface IStandardizedYieldToken is IERC20Metadata {
      * @return assetAddress the address of the asset
      * @return assetDecimals the decimals of the asset
      */
-    function assetInfo() external view returns (AssetType assetType, address assetAddress, uint8 assetDecimals);
+    function assetInfo()
+        external
+        view
+        returns (
+            AssetType assetType,
+            address assetAddress,
+            uint8 assetDecimals
+        );
 }

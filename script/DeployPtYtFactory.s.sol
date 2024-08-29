@@ -4,7 +4,6 @@ pragma solidity 0.8.24;
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 import {PtYtFactory} from "../src/core/Yield/PtYtFactory.sol";
-import {DeploySyCompound} from "./SY/DeploySYCompound.s.sol";
 
 contract DeployPtYtFactory is Script {
     function run(

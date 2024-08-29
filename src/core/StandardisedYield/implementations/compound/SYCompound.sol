@@ -5,9 +5,12 @@ import {SYBase} from "../../SYBase.sol";
 import {ICdai} from "../../../../interfaces/Icore/ICdai.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {TokenDecimals} from "../../../libraries/TokenDecimals.sol";
+import {console} from "forge-std/console.sol";
 
 contract SYCompound is SYBase {
     using TokenDecimals for uint256;
+
+    error SYCompound__InvalidTokenIn(address expectedTokenIn);
 
     // Yield Bearing Token Address
     address private immutable i_cdai;
@@ -80,7 +83,9 @@ contract SYCompound is SYBase {
         address tokenIn,
         uint256 amountTokenToDeposit
     ) external view override returns (uint256 amountSharesOut) {
-        require(isValidTokenIn(tokenIn), "Invalid TokenIn");
+        if (!isValidTokenIn(tokenIn)) {
+            revert SYCompound__InvalidTokenIn(tokenIn);
+        }
         amountSharesOut = _deposit(amountTokenToDeposit);
     }
 
@@ -106,6 +111,7 @@ contract SYCompound is SYBase {
         override
         returns (address[] memory res)
     {
+        res = new address[](1);
         res[0] = i_cdai;
     }
 
@@ -115,6 +121,7 @@ contract SYCompound is SYBase {
         override
         returns (address[] memory res)
     {
+        res = new address[](1);
         res[0] = i_cdai;
     }
 
