@@ -6,7 +6,7 @@ import {IWstEth} from "../../../../interfaces/Icore/IWstEth.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {TokenDecimals} from "../../../libraries/TokenDecimals.sol";
 
-contract SYwstEth is SYBase {
+contract SYWstEth is SYBase {
     using TokenDecimals for uint256;
     uint256 private constant ONE = 1e18;
 
@@ -37,7 +37,7 @@ contract SYwstEth is SYBase {
      */
     function _deposit(
         uint256 amountTokenToDeposit
-    ) internal view override returns (uint256 amountSharesOut) {
+    ) internal pure override returns (uint256 amountSharesOut) {
         // This is a 1:1 SY token for GYGP yield-bearing Token
         amountSharesOut = amountTokenToDeposit;
     }
@@ -48,7 +48,7 @@ contract SYwstEth is SYBase {
      */
     function _redeem(
         uint256 amountSharesToRedeem
-    ) internal view override returns (uint256 amountTokenOut) {
+    ) internal pure override returns (uint256 amountTokenOut) {
         // This is a 1:1 SY token for GYGP yield-bearing Token
         amountTokenOut = amountSharesToRedeem;
     }
@@ -97,6 +97,7 @@ contract SYwstEth is SYBase {
         override
         returns (address[] memory res)
     {
+        res = new address[](1);
         res[0] = i_wstEth;
     }
 
@@ -106,6 +107,7 @@ contract SYwstEth is SYBase {
         override
         returns (address[] memory res)
     {
+        res = new address[](1);
         res[0] = i_wstEth;
     }
 

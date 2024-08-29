@@ -14,7 +14,7 @@ import {DeploySYCompound} from "../../../script/SY/DeploySYCompound.s.sol";
 import {IStandardizedYieldToken} from "../../../src/interfaces/Icore/IStandardizedYieldToken.sol";
 
 contract TestSYCompound is Test, TestBase {
-    IStandardizedYieldToken private SYCompound;
+    IStandardizedYieldToken private SY;
 
     // The Underlying Asset
     address private cdai;
@@ -30,13 +30,13 @@ contract TestSYCompound is Test, TestBase {
         cdai = helperConfig.getConfig().yieldBearingTokens[0];
 
         DeploySYCompound deploySYCompound = new DeploySYCompound();
-        SYCompound = IStandardizedYieldToken(deploySYCompound.run());
+        SY = IStandardizedYieldToken(deploySYCompound.run());
     }
 
     modifier deposited() {
         _mintCdaiForUser(cdai, USER, 100e18);
-        ICdai(cdai).approve(address(SYCompound), AMOUNT_CDAI_DEPOSIT);
-        SYCompound.deposit(USER, cdai, AMOUNT_CDAI_DEPOSIT, AMOUNT_SY_MINT);
+        IERC20(cdai).approve(address(SY), AMOUNT_CDAI_DEPOSIT);
+        SY.deposit(USER, cdai, AMOUNT_CDAI_DEPOSIT, AMOUNT_SY_MINT);
         _;
     }
 
@@ -48,20 +48,20 @@ contract TestSYCompound is Test, TestBase {
         _mintCdaiForUser(cdai, USER, 100e18);
 
         // Arrange
-        uint256 userCdaiStartBal = ICdai(cdai).balanceOf(USER);
-        uint256 userSYStartBal = SYCompound.balanceOf(USER);
-        uint256 syCdaiStartBal = ICdai(cdai).balanceOf(address(SYCompound));
-        uint256 syStartTotalSupply = SYCompound.totalSupply();
+        uint256 userCdaiStartBal = IERC20(cdai).balanceOf(USER);
+        uint256 userSYStartBal = SY.balanceOf(USER);
+        uint256 syCdaiStartBal = IERC20(cdai).balanceOf(address(SY));
+        uint256 syStartTotalSupply = SY.totalSupply();
 
         // Act
-        ICdai(cdai).approve(address(SYCompound), AMOUNT_CDAI_DEPOSIT);
-        SYCompound.deposit(USER, cdai, AMOUNT_CDAI_DEPOSIT, AMOUNT_SY_MINT);
+        IERC20(cdai).approve(address(SY), AMOUNT_CDAI_DEPOSIT);
+        SY.deposit(USER, cdai, AMOUNT_CDAI_DEPOSIT, AMOUNT_SY_MINT);
 
         // Assert
-        uint256 userCdaiEndBal = ICdai(cdai).balanceOf(USER);
-        uint256 userSYEndBal = SYCompound.balanceOf(USER);
-        uint256 syCdaiEndBal = ICdai(cdai).balanceOf(address(SYCompound));
-        uint256 syEndTotalSupply = SYCompound.totalSupply();
+        uint256 userCdaiEndBal = IERC20(cdai).balanceOf(USER);
+        uint256 userSYEndBal = SY.balanceOf(USER);
+        uint256 syCdaiEndBal = IERC20(cdai).balanceOf(address(SY));
+        uint256 syEndTotalSupply = SY.totalSupply();
 
         assertEq(userCdaiStartBal - userCdaiEndBal, AMOUNT_CDAI_DEPOSIT);
         assertEq(userSYEndBal - userSYStartBal, AMOUNT_SY_MINT);
@@ -71,25 +71,19 @@ contract TestSYCompound is Test, TestBase {
 
     function testRedeem() external prankUser deposited {
         // Arrange
-        uint256 userCdaiStartBal = ICdai(cdai).balanceOf(USER);
-        uint256 userSYStartBal = SYCompound.balanceOf(USER);
-        uint256 syCdaiStartBal = ICdai(cdai).balanceOf(address(SYCompound));
-        uint256 syStartTotalSupply = SYCompound.totalSupply();
+        uint256 userCdaiStartBal = IERC20(cdai).balanceOf(USER);
+        uint256 userSYStartBal = SY.balanceOf(USER);
+        uint256 syCdaiStartBal = IERC20(cdai).balanceOf(address(SY));
+        uint256 syStartTotalSupply = SY.totalSupply();
 
         // Act
-        SYCompound.redeem(
-            USER,
-            AMOUNT_SY_BURN,
-            cdai,
-            AMOUNT_CDAI_REDEEM,
-            false
-        );
+        SY.redeem(USER, AMOUNT_SY_BURN, cdai, AMOUNT_CDAI_REDEEM, false);
 
         // Assert
-        uint256 userCdaiEndBal = ICdai(cdai).balanceOf(USER);
-        uint256 userSYEndBal = SYCompound.balanceOf(USER);
-        uint256 syCdaiEndBal = ICdai(cdai).balanceOf(address(SYCompound));
-        uint256 syEndTotalSupply = SYCompound.totalSupply();
+        uint256 userCdaiEndBal = IERC20(cdai).balanceOf(USER);
+        uint256 userSYEndBal = SY.balanceOf(USER);
+        uint256 syCdaiEndBal = IERC20(cdai).balanceOf(address(SY));
+        uint256 syEndTotalSupply = SY.totalSupply();
 
         assertEq(userCdaiEndBal - userCdaiStartBal, AMOUNT_CDAI_REDEEM);
         assertEq(userSYStartBal - userSYEndBal, AMOUNT_SY_BURN);
@@ -103,7 +97,7 @@ contract TestSYCompound is Test, TestBase {
 
     // NEED CLARITY
     function testExchangeRate() external view {
-        uint256 exchangeRate = SYCompound.exchangeRate();
+        uint256 exchangeRate = SY.exchangeRate();
 
         // cdai has 8 decimals + the value is scaled by 18
         // So we divide it by 1e8 to make it comply to our SY.exchangeRate()
@@ -116,28 +110,25 @@ contract TestSYCompound is Test, TestBase {
     //////////////////////////////////////////////////////////////*/
 
     function testPreviewDeposit() external {
-        uint256 amountSYCompound = SYCompound.previewDeposit(
-            cdai,
-            AMOUNT_CDAI_DEPOSIT
-        );
-        uint256 expectedAmountSYCompound = AMOUNT_SY_MINT; // As SY Compound has 18 decimals
+        uint256 amountSY = SY.previewDeposit(cdai, AMOUNT_CDAI_DEPOSIT);
+        uint256 expectedAmountSY = AMOUNT_SY_MINT; // As SY Compound has 18 decimals
 
-        assertEq(amountSYCompound, expectedAmountSYCompound);
+        assertEq(amountSY, expectedAmountSY);
 
         // REVERT TEST
         vm.expectRevert();
-        SYCompound.previewDeposit(INVALID_ADDRESS, AMOUNT_CDAI_DEPOSIT);
+        SY.previewDeposit(INVALID_ADDRESS, AMOUNT_CDAI_DEPOSIT);
     }
 
     function testPreviewRedeem() external {
-        uint256 amountCdai = SYCompound.previewRedeem(cdai, AMOUNT_SY_BURN);
+        uint256 amountCdai = SY.previewRedeem(cdai, AMOUNT_SY_BURN);
         uint256 expectedAmountCdai = AMOUNT_CDAI_REDEEM; // As SY Compound has 18 decimals
 
         assertEq(amountCdai, expectedAmountCdai);
 
         // REVERT TEST
         vm.expectRevert();
-        SYCompound.previewRedeem(INVALID_ADDRESS, AMOUNT_CDAI_DEPOSIT);
+        SY.previewRedeem(INVALID_ADDRESS, AMOUNT_CDAI_DEPOSIT);
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -145,31 +136,31 @@ contract TestSYCompound is Test, TestBase {
     //////////////////////////////////////////////////////////////*/
 
     function testYieldBearingToken() external view {
-        address yieldToken = SYCompound.yieldToken();
+        address yieldToken = SY.yieldToken();
         address expectedYieldToken = cdai;
 
         assertEq(yieldToken, expectedYieldToken);
     }
 
     function testGetTokensIn() external view {
-        address tokenIn = SYCompound.getTokensIn()[0];
+        address tokenIn = SY.getTokensIn()[0];
         address expectedTokenIn = cdai;
 
         assertEq(tokenIn, expectedTokenIn);
     }
 
     function testGetTokensOut() external view {
-        address tokenOut = SYCompound.getTokensOut()[0];
+        address tokenOut = SY.getTokensOut()[0];
         address expectedTokenOut = cdai;
 
         assertEq(tokenOut, expectedTokenOut);
     }
 
     function testIsValidTokeIn() external view {
-        bool response1 = SYCompound.isValidTokenIn(cdai);
+        bool response1 = SY.isValidTokenIn(cdai);
         bool expectedResponse1 = true;
 
-        bool response2 = SYCompound.isValidTokenIn(INVALID_ADDRESS);
+        bool response2 = SY.isValidTokenIn(INVALID_ADDRESS);
         bool expectedResponse2 = false;
 
         assertEq(response1, expectedResponse1);
@@ -177,10 +168,10 @@ contract TestSYCompound is Test, TestBase {
     }
 
     function testIsValidTokeOut() external view {
-        bool response1 = SYCompound.isValidTokenOut(cdai);
+        bool response1 = SY.isValidTokenOut(cdai);
         bool expectedResponse1 = true;
 
-        bool response2 = SYCompound.isValidTokenOut(INVALID_ADDRESS);
+        bool response2 = SY.isValidTokenOut(INVALID_ADDRESS);
         bool expectedResponse2 = false;
 
         assertEq(response1, expectedResponse1);
@@ -188,7 +179,7 @@ contract TestSYCompound is Test, TestBase {
     }
 
     function TestAssetInfo() external view {
-        (, address assetAddress, uint8 assetDecimals) = SYCompound.assetInfo();
+        (, address assetAddress, uint8 assetDecimals) = SY.assetInfo();
 
         address expectedAssetAddress = cdai;
         uint8 expectedAssetDecimals = ICdai(cdai).decimals();
