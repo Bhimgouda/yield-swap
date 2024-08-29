@@ -4,22 +4,18 @@ pragma solidity 0.8.24;
 import {Test} from "forge-std/Test.sol";
 import {console} from "forge-std/console.sol";
 import {HelperConfig} from "../../script/helpers/HelperConfig.s.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ICdai} from "../../src/interfaces/Icore/ICdai.sol";
 import {PMath} from "../../lib/PMath.sol";
+
+import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+
+import {ICdai} from "../../src/interfaces/Icore/ICdai.sol";
+import {IWstEth} from "../../src/interfaces/Icore/IWstEth.sol";
 
 contract TestHelper is Test {
     using PMath for uint256;
 
-    // Admin is required to add interest to the CDAI pool at intervals
-    address private constant CDAI_ADMIN =
-        0x6d903f6003cca6255D85CcA4D3B5E5146dC33925;
-    uint256 private constant CDAI_ADMIN_BALANCE = 100000e18;
-    uint256 private constant DAI_INTEREST_AMOUNT = 10000e18;
-
     string[5] private USERS = ["USER1", "USER2", "USER3", "USER4", "USER5"];
     uint256 private constant USER_GAS = 1000 ether;
-    uint256 private constant DAI_AMOUNT = 1000e18;
 
     /*///////////////////////////////////////////////////////////////
                             CREATE TEST USERS
@@ -30,55 +26,56 @@ contract TestHelper is Test {
     //  * @param yieldBearingToken Yield Bearing Token or Token[]
     //  * @dev This function gets test users with enough underlying and yield bearing token Balance
     //  */
-    function setUp() external returns (address[5] memory users, address admin) {
+    function setUp()
+        external
+        returns (
+            address[5] memory users,
+            HelperConfig.YieldBearingToken[2] memory yieldBearingTokens
+        )
+    {
         HelperConfig helperConfig = new HelperConfig();
-        HelperConfig.YieldBearingToken[1]
-            memory yieldBearingTokens = helperConfig
-                .getConfig()
-                .yieldBearingTokens;
-
-        address cdai = yieldBearingTokens[0].token;
-        address dai = yieldBearingTokens[0].underlying;
-
-        // Mint CDAI for Users
+        yieldBearingTokens = helperConfig.getConfig().yieldBearingTokens;
 
         for (uint256 i; i < USERS.length; ++i) {
             address user = makeAddr(USERS[i]);
-
-            // Added gas balance
             vm.deal(user, USER_GAS);
 
             vm.startPrank(user);
 
-            // Minted DAI for the user
-            deal(dai, user, DAI_AMOUNT, true);
-
-            // Deposited DAI in compound for CDAI
-            IERC20(dai).approve(cdai, DAI_AMOUNT);
-            ICdai(cdai).mint(DAI_AMOUNT);
+            _mintCdaiForUsers(user, yieldBearingTokens[0]);
+            _mintWstEthForUsers(user, yieldBearingTokens[0]);
 
             vm.stopPrank();
-
             users[i] = user;
-            console.log(ICdai(cdai).exchangeRateStored());
         }
+    }
 
-        // Add DAI interest to the CDAI Pool
-        admin = CDAI_ADMIN;
-        console.log(ICdai(cdai).exchangeRateStored());
+    function _mintCdaiForUsers(
+        address user,
+        HelperConfig.YieldBearingToken memory cdaiToken
+    ) internal {
+        address cdai = cdaiToken.token;
+        address dai = cdaiToken.underlying;
+        uint256 DAI_AMOUNT = 1000e18;
 
-        vm.startPrank(admin);
-        vm.deal(admin, USER_GAS);
-        deal(dai, admin, CDAI_ADMIN_BALANCE, true);
+        // Minted DAI for the user
+        deal(dai, user, DAI_AMOUNT, true);
 
-        console.log(ICdai(cdai).exchangeRateStored());
+        // Deposited DAI in compound for CDAI
+        IERC20(dai).approve(cdai, DAI_AMOUNT);
+        ICdai(cdai).mint(DAI_AMOUNT);
+    }
 
-        IERC20(dai).approve(cdai, DAI_INTEREST_AMOUNT);
-        ICdai(cdai)._addReserves(DAI_INTEREST_AMOUNT);
-        ICdai(cdai).accrueInterest();
-        console.log(ICdai(cdai).exchangeRateStored());
+    function _mintWstEthForUsers(
+        address user,
+        HelperConfig.YieldBearingToken memory wstEthToken
+    ) internal {
+        address wstEth = wstEthToken.token;
+        address stEth = wstEthToken.underlying;
+        uint256 WSTETH_AMOUNT = 2e18;
 
-        vm.stopPrank();
+        // MinteD wstEth Directly
+        deal(wstEth, user, WSTETH_AMOUNT, true);
     }
 
     function test() external {}

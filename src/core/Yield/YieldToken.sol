@@ -117,7 +117,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     }
 
     /*///////////////////////////////////////////////////////////////
-                            INTEREST & REWARD RELATED FUNCTIONS
+                            INTEREST-RELATED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
     /*///////////////////////////////////////////////////////////////
@@ -131,7 +131,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         uint256 currentExchangeRate = SY.exchangeRate();
 
         // Formula
-        // amountPtorYt = amountSy * exchangeRate (in terms of accounting asset)
+        // amountPtorYt = amountSy*exchangeRate (in terms of accounting asset)
         amountYt = amountSy.mulDown(currentExchangeRate);
         amountPt = amountYt;
     }
@@ -140,7 +140,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         uint256 amountPt
     ) public view returns (uint256 amountSy) {
         // Formula
-        // amountSy = amountPt * (1/exchangeRate) (in terms of accounting asset)
-        amountSy = amountPt.mulDown(PMath.ONE.divDown(SY.exchangeRate()));
+        // amountSy = amountPt/exchangeRate (in terms of accounting asset)
+        amountSy = amountPt.divDown(SY.exchangeRate());
     }
 }

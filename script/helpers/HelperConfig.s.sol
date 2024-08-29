@@ -16,7 +16,7 @@ contract HelperConfig is Script {
     uint256 private MAINNET_CHAIN_ID = 1;
 
     struct NetworkConfig {
-        YieldBearingToken[1] yieldBearingTokens;
+        YieldBearingToken[2] yieldBearingTokens;
     }
 
     struct YieldBearingToken {
@@ -60,9 +60,10 @@ contract HelperConfig is Script {
     function _getYieldBearingTokens()
         internal
         pure
-        returns (YieldBearingToken[1] memory yieldBearingTokens)
+        returns (YieldBearingToken[2] memory yieldBearingTokens)
     {
         yieldBearingTokens[0] = _getCdai();
+        yieldBearingTokens[1] = _getWstEth();
     }
 
     function _getCdai() internal pure returns (YieldBearingToken memory) {
@@ -70,5 +71,12 @@ contract HelperConfig is Script {
         address CDAI = 0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643;
 
         return YieldBearingToken({token: CDAI, underlying: DAI});
+    }
+
+    function _getWstEth() internal pure returns (YieldBearingToken memory) {
+        address STETH = 0xae7ab96520DE3A18E5e111B5EaAb095312D7fE84;
+        address WSTETH = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
+
+        return YieldBearingToken({token: WSTETH, underlying: STETH});
     }
 }
