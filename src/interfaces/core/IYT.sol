@@ -3,7 +3,17 @@ pragma solidity 0.8.24;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
-interface IYieldToken is IERC20Metadata {
+interface IYT is IERC20Metadata {
+    function SY() external view returns (address);
+
+    function PT() external view returns (address);
+
+    function factory() external view returns (address);
+
+    function expiry() external view returns (uint256);
+
+    function isExpired() external view returns (bool);
+
     function stripSy(
         address receiver,
         uint256 amountSy
@@ -27,10 +37,4 @@ interface IYieldToken is IERC20Metadata {
     function previewRedeemSy(
         uint256 amountPt
     ) external view returns (uint256 amountSy);
-
-    function getSY() external view returns (address);
-
-    function getPT() external view returns (address);
-
-    function getExpiry() external view returns (uint256);
 }

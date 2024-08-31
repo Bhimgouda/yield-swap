@@ -4,6 +4,10 @@ pragma solidity ^0.8.24;
 import {IERC20Metadata} from "@openzeppelin/contracts/interfaces/IERC20Metadata.sol";
 
 interface IPT is IERC20Metadata {
+    function SY() external view returns (address);
+
+    function YT() external view returns (address);
+
     function initialize(address yt) external;
 
     function mintByYt(address to, uint256 amount) external;
@@ -12,11 +16,7 @@ interface IPT is IERC20Metadata {
 
     function isExpired() external view returns (bool);
 
-    function getSY() external view returns (address);
+    function expiry() external view returns (uint256);
 
-    function getYT() external view returns (address);
-
-    function getExpiry() external view returns (uint256);
-
-    function getFactory() external view returns (address);
+    function factory() external view returns (address);
 }

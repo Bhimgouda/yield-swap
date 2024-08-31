@@ -1,11 +1,8 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-import {Test} from "forge-std/Test.sol";
+import {TestSY} from "../../helpers/TestSY.sol";
 import {console} from "forge-std/console.sol";
-import {PMath} from "../../../lib/PMath.sol";
-import {TestBase} from "../../helpers/TestBase.sol";
-import {HelperConfig} from "../../../script/helpers/HelperConfig.s.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {ICdai} from "../../../src/interfaces/core/ICdai.sol";
@@ -13,7 +10,7 @@ import {ICdai} from "../../../src/interfaces/core/ICdai.sol";
 import {DeploySYCompound} from "../../../script/SY/DeploySYCompound.s.sol";
 import {ISY} from "../../../src/interfaces/core/ISY.sol";
 
-contract TestSYCompound is Test, TestBase {
+contract TestSYCompound is TestSY {
     ISY private SY;
 
     // The Underlying Asset
@@ -26,8 +23,7 @@ contract TestSYCompound is Test, TestBase {
     uint256 AMOUNT_SY_BURN = 100e18;
 
     function setUp() external {
-        HelperConfig helperConfig = new HelperConfig();
-        cdai = helperConfig.getConfig().yieldBearingTokens[0];
+        cdai = _getCdai();
 
         DeploySYCompound deploySYCompound = new DeploySYCompound();
         SY = ISY(deploySYCompound.run());

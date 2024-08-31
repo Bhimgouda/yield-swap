@@ -4,8 +4,8 @@ pragma solidity 0.8.24;
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 contract PrincipalToken is ERC20 {
-    address private immutable i_sy;
-    address private i_yt;
+    address public immutable SY;
+    address public YT;
     uint256 private immutable i_expiry;
     address private immutable i_factory;
 
@@ -15,24 +15,24 @@ contract PrincipalToken is ERC20 {
     }
 
     modifier onlyYt() {
-        require(msg.sender == i_yt);
+        require(msg.sender == YT);
         _;
     }
 
     constructor(
-        address sy,
-        string memory name,
-        string memory symbol,
-        uint256 expiry
-    ) ERC20(name, symbol) {
-        i_sy = sy;
-        i_expiry = expiry;
+        address _SY,
+        string memory _name,
+        string memory _symbol,
+        uint256 _expiry
+    ) ERC20(_name, _symbol) {
+        SY = _SY;
+        i_expiry = _expiry;
         i_factory = msg.sender;
     }
 
     function initialize(address yt) external onlyFactory {
-        require(i_yt == address(0), "Already Initialized");
-        i_yt = yt;
+        require(YT == address(0), "Already Initialized");
+        YT = yt;
     }
 
     function mintByYt(address to, uint256 amount) external onlyYt {
@@ -51,19 +51,11 @@ contract PrincipalToken is ERC20 {
         return block.timestamp < i_expiry ? false : true;
     }
 
-    function getSY() external view returns (address) {
-        return i_sy;
-    }
-
-    function getYT() external view returns (address) {
-        return i_yt;
-    }
-
-    function getExpiry() external view returns (uint256) {
+    function expiry() external view returns (uint256) {
         return i_expiry;
     }
 
-    function getFactory() external view returns (address) {
+    function factory() external view returns (address) {
         return i_factory;
     }
 }

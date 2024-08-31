@@ -14,7 +14,7 @@ import {console} from "forge-std/console.sol";
 // Takes SY -> mints YT and PT (Based on the accounting asset)
 // Takes YT + PT -> SY is redeemed (before expiry)
 
-// isExpired
+// expired
 // PT -> SY (Based on the accounting asset)
 // YT -> Doesn't distribute the interest
 
@@ -25,8 +25,9 @@ import {console} from "forge-std/console.sol";
 contract YieldToken is ERC20, InterestManager, RewardManager {
     using PMath for uint256;
 
-    ISY private immutable SY;
-    IPT private immutable PT;
+    address public immutable SY;
+    address public immutable PT;
+    address public immutable i_factory;
     uint256 private immutable i_expiry;
 
     uint256 private s_syReserve;
@@ -36,23 +37,24 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     uint256 private s_exchangeRateBlock;
 
     constructor(
-        address sy,
-        address pt,
-        string memory name,
-        string memory symbol,
-        uint256 expiry
-    ) ERC20(name, symbol) {
-        SY = ISY(sy);
-        PT = IPT(pt);
-        i_expiry = expiry;
+        address _SY,
+        address _PT,
+        string memory _name,
+        string memory _symbol,
+        uint256 _expiry
+    ) ERC20(_name, _symbol) {
+        SY = _SY;
+        PT = _PT;
+        i_expiry = _expiry;
+        i_factory = msg.sender;
     }
 
-    modifier isNotExpired() {
+    modifier notExpired() {
         require(block.timestamp < i_expiry, "The YT has expired");
         _;
     }
 
-    modifier isExpired() {
+    modifier expired() {
         require(block.timestamp >= i_expiry, "The YT has not expired yet");
         _;
     }
@@ -60,13 +62,13 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     function stripSy(
         address receiver,
         uint256 amountSy
-    ) external isNotExpired returns (uint256 amountPt, uint256 amountYt) {
-        SY.transferFrom(msg.sender, address(this), amountSy);
+    ) external notExpired returns (uint256 amountPt, uint256 amountYt) {
+        ISY(SY).transferFrom(msg.sender, address(this), amountSy);
 
         (amountYt, amountPt) = previewStripSy(amountSy);
 
         _mint(receiver, amountYt);
-        PT.mintByYt(receiver, amountPt);
+        IPT(PT).mintByYt(receiver, amountPt);
 
         s_syReserve += amountSy;
     }
@@ -78,7 +80,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     function redeemSy(
         address receiver,
         uint256 amountPt
-    ) external isExpired returns (uint256 amountSy) {
+    ) external expired returns (uint256 amountSy) {
         return _redeemSy(receiver, amountPt, 0, true);
     }
 
@@ -92,7 +94,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         address receiver,
         uint256 amountPt,
         uint256 amountYt
-    ) external isNotExpired returns (uint256 amountSy) {
+    ) external notExpired returns (uint256 amountSy) {
         return _redeemSy(receiver, amountPt, amountYt, false);
     }
 
@@ -100,16 +102,16 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         address receiver,
         uint256 amountPt,
         uint256 amountYt,
-        bool expired
+        bool _isExpired
     ) internal returns (uint256 amountSy) {
-        if (!expired) {
+        if (!_isExpired) {
             require(amountPt == amountYt, "Unequal amounts of PT and YT");
             _burn(msg.sender, amountYt);
         }
 
-        PT.burnByYt(msg.sender, amountPt);
+        IPT(PT).burnByYt(msg.sender, amountPt);
         amountSy = previewRedeemSy(amountPt);
-        SY.transfer(receiver, amountSy);
+        ISY(SY).transfer(receiver, amountSy);
 
         s_syReserve -= amountSy;
     }
@@ -118,7 +120,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         internal
         returns (uint256 currentExchangeRate)
     {
-        currentExchangeRate = PMath.max(SY.exchangeRate(), s_exchangeRate);
+        currentExchangeRate = PMath.max(ISY(SY).exchangeRate(), s_exchangeRate);
         s_exchangeRate = currentExchangeRate;
     }
 
@@ -134,7 +136,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     function previewStripSy(
         uint256 amountSy
     ) public view returns (uint256 amountPt, uint256 amountYt) {
-        uint256 currentExchangeRate = SY.exchangeRate();
+        uint256 currentExchangeRate = ISY(SY).exchangeRate();
 
         // Formula
         // amountPtorYt = amountSy*exchangeRate (in terms of accounting asset)
@@ -147,22 +149,22 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     ) public view returns (uint256 amountSy) {
         // Formula
         // amountSy = amountPt/exchangeRate (in terms of accounting asset)
-        amountSy = amountPt.divDown(SY.exchangeRate());
+        amountSy = amountPt.divDown(ISY(SY).exchangeRate());
     }
 
     /*///////////////////////////////////////////////////////////////
                             External View Functions
     //////////////////////////////////////////////////////////////*/
 
-    function getSY() external view returns (address) {
-        return address(SY);
+    function isExpired() external view returns (bool) {
+        return block.timestamp < i_expiry ? false : true;
     }
 
-    function getPT() external view returns (address) {
-        return address(PT);
-    }
-
-    function getExpiry() external view returns (uint256) {
+    function expiry() external view returns (uint256) {
         return i_expiry;
+    }
+
+    function factory() external view returns (address) {
+        return i_factory;
     }
 }
