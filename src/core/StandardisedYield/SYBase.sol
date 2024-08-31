@@ -7,9 +7,9 @@ pragma solidity 0.8.24;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {IStandardizedYieldToken} from "../../interfaces/Icore/IStandardizedYieldToken.sol";
+import {ISY} from "../../interfaces/core/ISY.sol";
 
-abstract contract SYBase is ERC20, IStandardizedYieldToken {
+abstract contract SYBase is ERC20, ISY {
     constructor(string memory name, string memory symbol) ERC20(name, symbol) {}
 
     function deposit(

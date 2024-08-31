@@ -9,6 +9,6 @@ import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract DeployAllSY is Script {
     function run() external returns (address[] memory syTokens) {
-        DeploySYCompound deploySyCompound = new DeploySYCompound();
+        DeploySYCompound deploySYCompound = new DeploySYCompound();
     }
 }

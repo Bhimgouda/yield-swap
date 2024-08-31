@@ -18,8 +18,8 @@ contract PtYtFactory is Ownable(msg.sender) {
     string constant YT_SYMBOL_PREFIX = "YT-";
     string constant SY_NAME_BEYOND = "SY ";
     string constant SY_SYMBOL_BEYOND = "SY-";
-    uint256 private constant MAX_INTEREST_FEE_RATE = 15e16; // 15%
-    uint256 private constant MIN_INTEREST_FEE_RATE = 25e15; // 2.5%
+    uint256 public constant MAX_INTEREST_FEE_RATE = 15e16; // 15%
+    uint256 public constant MIN_INTEREST_FEE_RATE = 25e15; // 2.5%
 
     // Fee to be charged on interest earned
     uint256 private s_interestFeeRate;
@@ -27,10 +27,10 @@ contract PtYtFactory is Ownable(msg.sender) {
     // Treasury address for receiving fees
     address private s_treasury;
 
-    modifier interestFeeRateInRange(uint256 interestFeeRate) {
+    modifier interestFeeRateInRange(uint256 _interestFeeRate) {
         require(
-            MIN_INTEREST_FEE_RATE < interestFeeRate &&
-                interestFeeRate < MAX_INTEREST_FEE_RATE,
+            MIN_INTEREST_FEE_RATE < _interestFeeRate &&
+                _interestFeeRate < MAX_INTEREST_FEE_RATE,
             "Interest Fee Rate Out of Range"
         );
         _;
@@ -88,6 +88,10 @@ contract PtYtFactory is Ownable(msg.sender) {
         s_treasury = newTreasury;
     }
 
+    /*///////////////////////////////////////////////////////////////
+                            Internal Functions
+    //////////////////////////////////////////////////////////////*/
+
     /**
      * @dev generates the pt and yt name based on the sy's metadata
      */
@@ -138,7 +142,15 @@ contract PtYtFactory is Ownable(msg.sender) {
         symbol = IERC20Metadata(sy).symbol();
     }
 
-    function interestFeeRate() external view returns (uint256) {
+    /*///////////////////////////////////////////////////////////////
+                            External View
+    //////////////////////////////////////////////////////////////*/
+
+    function getInterestFeeRate() external view returns (uint256) {
         return s_interestFeeRate;
+    }
+
+    function getTreasury() external view returns (address) {
+        return s_treasury;
     }
 }

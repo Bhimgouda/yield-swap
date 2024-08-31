@@ -4,8 +4,8 @@ pragma solidity 0.8.24;
 import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {RewardManager} from "./Manager/RewardManager.sol";
 import {InterestManager} from "./Manager/InterestManager.sol";
-import {IPrincipalToken} from "../../interfaces/Icore/IPrincipalToken.sol";
-import {IStandardizedYieldToken} from "../../interfaces/Icore/IStandardizedYieldToken.sol";
+import {IPT} from "../../interfaces/core/IPT.sol";
+import {ISY} from "../../interfaces/core/ISY.sol";
 import {PMath} from "../libraries/math/PMath.sol";
 import {console} from "forge-std/console.sol";
 
@@ -25,9 +25,11 @@ import {console} from "forge-std/console.sol";
 contract YieldToken is ERC20, InterestManager, RewardManager {
     using PMath for uint256;
 
-    IStandardizedYieldToken private immutable SY;
-    IPrincipalToken private immutable PT;
+    ISY private immutable SY;
+    IPT private immutable PT;
     uint256 private immutable i_expiry;
+
+    uint256 private s_syReserve;
 
     // This is the read form of currentExchangeRate() which gets updated at most function calls(every other block)
     uint256 private s_exchangeRate;
@@ -40,8 +42,8 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         string memory symbol,
         uint256 expiry
     ) ERC20(name, symbol) {
-        SY = IStandardizedYieldToken(sy);
-        PT = IPrincipalToken(pt);
+        SY = ISY(sy);
+        PT = IPT(pt);
         i_expiry = expiry;
     }
 
@@ -65,6 +67,8 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
 
         _mint(receiver, amountYt);
         PT.mintByYt(receiver, amountPt);
+
+        s_syReserve += amountSy;
     }
 
     /**
@@ -106,6 +110,8 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         PT.burnByYt(msg.sender, amountPt);
         amountSy = previewRedeemSy(amountPt);
         SY.transfer(receiver, amountSy);
+
+        s_syReserve -= amountSy;
     }
 
     function _currentExchangeRate()
@@ -142,5 +148,21 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         // Formula
         // amountSy = amountPt/exchangeRate (in terms of accounting asset)
         amountSy = amountPt.divDown(SY.exchangeRate());
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                            External View Functions
+    //////////////////////////////////////////////////////////////*/
+
+    function getSY() external view returns (address) {
+        return address(SY);
+    }
+
+    function getPT() external view returns (address) {
+        return address(PT);
+    }
+
+    function getExpiry() external view returns (uint256) {
+        return i_expiry;
     }
 }

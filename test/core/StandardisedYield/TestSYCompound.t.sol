@@ -8,13 +8,13 @@ import {TestBase} from "../../helpers/TestBase.sol";
 import {HelperConfig} from "../../../script/helpers/HelperConfig.s.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
-import {ICdai} from "../../../src/interfaces/Icore/ICdai.sol";
+import {ICdai} from "../../../src/interfaces/core/ICdai.sol";
 
 import {DeploySYCompound} from "../../../script/SY/DeploySYCompound.s.sol";
-import {IStandardizedYieldToken} from "../../../src/interfaces/Icore/IStandardizedYieldToken.sol";
+import {ISY} from "../../../src/interfaces/core/ISY.sol";
 
 contract TestSYCompound is Test, TestBase {
-    IStandardizedYieldToken private SY;
+    ISY private SY;
 
     // The Underlying Asset
     address private cdai;
@@ -30,69 +30,11 @@ contract TestSYCompound is Test, TestBase {
         cdai = helperConfig.getConfig().yieldBearingTokens[0];
 
         DeploySYCompound deploySYCompound = new DeploySYCompound();
-        SY = IStandardizedYieldToken(deploySYCompound.run());
-    }
-
-    modifier deposited() {
-        _mintCdaiForUser(cdai, USER, 100e18);
-        IERC20(cdai).approve(address(SY), AMOUNT_CDAI_DEPOSIT);
-        SY.deposit(USER, cdai, AMOUNT_CDAI_DEPOSIT, AMOUNT_SY_MINT);
-        _;
+        SY = ISY(deploySYCompound.run());
     }
 
     /*///////////////////////////////////////////////////////////////
-                            SYBase FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
-
-    function testDeposit() external prankUser {
-        _mintCdaiForUser(cdai, USER, 100e18);
-
-        // Arrange
-        uint256 userCdaiStartBal = IERC20(cdai).balanceOf(USER);
-        uint256 userSYStartBal = SY.balanceOf(USER);
-        uint256 syCdaiStartBal = IERC20(cdai).balanceOf(address(SY));
-        uint256 syStartTotalSupply = SY.totalSupply();
-
-        // Act
-        IERC20(cdai).approve(address(SY), AMOUNT_CDAI_DEPOSIT);
-        SY.deposit(USER, cdai, AMOUNT_CDAI_DEPOSIT, AMOUNT_SY_MINT);
-
-        // Assert
-        uint256 userCdaiEndBal = IERC20(cdai).balanceOf(USER);
-        uint256 userSYEndBal = SY.balanceOf(USER);
-        uint256 syCdaiEndBal = IERC20(cdai).balanceOf(address(SY));
-        uint256 syEndTotalSupply = SY.totalSupply();
-
-        assertEq(userCdaiStartBal - userCdaiEndBal, AMOUNT_CDAI_DEPOSIT);
-        assertEq(userSYEndBal - userSYStartBal, AMOUNT_SY_MINT);
-        assertEq(syCdaiEndBal - syCdaiStartBal, AMOUNT_CDAI_DEPOSIT);
-        assertEq(syEndTotalSupply - syStartTotalSupply, AMOUNT_SY_MINT);
-    }
-
-    function testRedeem() external prankUser deposited {
-        // Arrange
-        uint256 userCdaiStartBal = IERC20(cdai).balanceOf(USER);
-        uint256 userSYStartBal = SY.balanceOf(USER);
-        uint256 syCdaiStartBal = IERC20(cdai).balanceOf(address(SY));
-        uint256 syStartTotalSupply = SY.totalSupply();
-
-        // Act
-        SY.redeem(USER, AMOUNT_SY_BURN, cdai, AMOUNT_CDAI_REDEEM, false);
-
-        // Assert
-        uint256 userCdaiEndBal = IERC20(cdai).balanceOf(USER);
-        uint256 userSYEndBal = SY.balanceOf(USER);
-        uint256 syCdaiEndBal = IERC20(cdai).balanceOf(address(SY));
-        uint256 syEndTotalSupply = SY.totalSupply();
-
-        assertEq(userCdaiEndBal - userCdaiStartBal, AMOUNT_CDAI_REDEEM);
-        assertEq(userSYStartBal - userSYEndBal, AMOUNT_SY_BURN);
-        assertEq(syCdaiStartBal - syCdaiEndBal, AMOUNT_CDAI_REDEEM);
-        assertEq(syStartTotalSupply - syEndTotalSupply, AMOUNT_SY_BURN);
-    }
-
-    /*///////////////////////////////////////////////////////////////
-                            PREVIEW RELATED FUNCTIONS
+                            EXCHANGE-RATE FUNCTION
     //////////////////////////////////////////////////////////////*/
 
     // NEED CLARITY

@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 import {SYBase} from "../../SYBase.sol";
-import {ICdai} from "../../../../interfaces/Icore/ICdai.sol";
+import {ICdai} from "../../../../interfaces/core/ICdai.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {TokenDecimals} from "../../../libraries/TokenDecimals.sol";
 import {console} from "forge-std/console.sol";

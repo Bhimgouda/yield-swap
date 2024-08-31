@@ -25,7 +25,7 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-interface IStandardizedYieldToken is IERC20Metadata {
+interface ISY is IERC20Metadata {
     /// @dev Emitted when any base tokens is deposited to mint shares
     event Deposit(
         address indexed caller,

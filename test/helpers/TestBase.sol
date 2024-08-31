@@ -8,17 +8,26 @@ import {PMath} from "../../lib/PMath.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-import {ICdai} from "../../src/interfaces/Icore/ICdai.sol";
-import {IWstEth} from "../../src/interfaces/Icore/IWstEth.sol";
+import {ICdai} from "../../src/interfaces/core/ICdai.sol";
+import {IWstEth} from "../../src/interfaces/core/IWstEth.sol";
 
 contract TestBase is Test {
     address internal USER = makeAddr("USER");
+
     address internal INVALID_ADDRESS = makeAddr("INVALID");
     uint256 internal ONE = 1e18;
+    uint256 internal DAY = 86400;
 
     modifier prankUser() {
         vm.startPrank(USER);
         vm.deal(USER, 1000 ether);
+        _;
+        vm.stopPrank();
+    }
+
+    modifier prank(address addr) {
+        vm.startPrank(addr);
+        vm.deal(addr, 1000 ether);
         _;
         vm.stopPrank();
     }

@@ -2,7 +2,7 @@
 pragma solidity 0.8.24;
 
 import {SYBase} from "../../SYBase.sol";
-import {IWstEth} from "../../../../interfaces/Icore/IWstEth.sol";
+import {IWstEth} from "../../../../interfaces/core/IWstEth.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {TokenDecimals} from "../../../libraries/TokenDecimals.sol";
 

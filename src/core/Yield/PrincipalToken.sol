@@ -50,4 +50,20 @@ contract PrincipalToken is ERC20 {
     function isExpired() external view returns (bool) {
         return block.timestamp < i_expiry ? false : true;
     }
+
+    function getSY() external view returns (address) {
+        return i_sy;
+    }
+
+    function getYT() external view returns (address) {
+        return i_yt;
+    }
+
+    function getExpiry() external view returns (uint256) {
+        return i_expiry;
+    }
+
+    function getFactory() external view returns (address) {
+        return i_factory;
+    }
 }
