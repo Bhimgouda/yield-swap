@@ -13,3 +13,4 @@ Later.doc
 
 # Dotenv file
 .env
+.github/workflows/test.yml

@@ -29,22 +29,6 @@ contract TestPtYtFactory is TestYieldContracts {
                             PT-YT FACTORY TESTS
     //////////////////////////////////////////////////////////////*/
 
-    // Constructor Tests //
-
-    function testGetInterestFeeRate() external view {
-        uint256 interestFeeRate = ptYtFactory.getInterestFeeRate();
-        uint256 expectedInterestFeeRate = INTEREST_FEE_RATE;
-
-        assertEq(interestFeeRate, expectedInterestFeeRate);
-    }
-
-    function testGetTreasury() external view {
-        address treasury = ptYtFactory.getTreasury();
-        address expectedTreasury = TREASURY;
-
-        assertEq(treasury, expectedTreasury);
-    }
-
     function testSetInterestFeeRateUpdatesInterestFeeRate()
         external
         prank(FACTORY_OWNER)
@@ -58,5 +42,23 @@ contract TestPtYtFactory is TestYieldContracts {
         address newTreasury = makeAddr("NEW TREASURY");
         ptYtFactory.setTreasury(newTreasury);
         assertEq(ptYtFactory.getTreasury(), newTreasury);
+    }
+
+    /*///////////////////////////////////////////////////////////////
+                    Tests for External-View Functions
+    //////////////////////////////////////////////////////////////*/
+
+    function testGetInterestFeeRate() external view {
+        uint256 interestFeeRate = ptYtFactory.getInterestFeeRate();
+        uint256 expectedInterestFeeRate = INTEREST_FEE_RATE;
+
+        assertEq(interestFeeRate, expectedInterestFeeRate);
+    }
+
+    function testGetTreasury() external view {
+        address treasury = ptYtFactory.getTreasury();
+        address expectedTreasury = TREASURY;
+
+        assertEq(treasury, expectedTreasury);
     }
 }

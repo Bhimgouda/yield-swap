@@ -101,7 +101,7 @@ interface ISY is IERC20Metadata {
      * @notice exchangeRate * syBalance / 1e18 must return the asset balance of the account
      * @notice vice-versa, if a user uses some amount of tokens equivalent to X asset, the amount of sy
      *  he can mint must be X * exchangeRate / 1e18
-     * @dev SYUtils's assetToSy & syToAsset should be used instead of raw multiplication
+     * @dev SYUtils's assetToSY& syToAsset should be used instead of raw multiplication
      *  & division
      */
     function exchangeRate() external view returns (uint256 res);

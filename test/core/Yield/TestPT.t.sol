@@ -27,6 +27,10 @@ contract TestPT is TestYieldContracts {
         pt = IPT(PT);
     }
 
+    /*///////////////////////////////////////////////////////////////
+                           Tests for External-View Functions
+    //////////////////////////////////////////////////////////////*/
+
     function testPTMetadata() external view {
         string memory ptName = pt.name();
         string memory ptSymbol = pt.symbol();

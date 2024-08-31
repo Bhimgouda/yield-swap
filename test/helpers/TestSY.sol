@@ -1,10 +1,10 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-import {HelperConfig} from "../../../script/helpers/HelperConfig.s.sol";
+import {HelperConfig} from "../../script/helpers/HelperConfig.s.sol";
 
-import {ICdai} from "../../../src/interfaces/core/ICdai.sol";
-import {IWstEth} from "../../../src/interfaces/core/IWstEth.sol";
+import {ICdai} from "../../src/interfaces/core/ICdai.sol";
+import {IWstEth} from "../../src/interfaces/core/IWstEth.sol";
 import {TestBase} from "./TestBase.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 

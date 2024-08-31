@@ -14,6 +14,8 @@ interface IYT is IERC20Metadata {
 
     function isExpired() external view returns (bool);
 
+    function syReserve() external view returns (uint256);
+
     function stripSy(
         address receiver,
         uint256 amountSy
@@ -30,11 +32,21 @@ interface IYT is IERC20Metadata {
         uint256 amountYt
     ) external returns (uint256 amountSy);
 
+    // These 3 are non-view by intention
     function previewStripSy(
         uint256 amountSy
-    ) external view returns (uint256 amountPt, uint256 amountYt);
+    ) external returns (uint256 amountPt, uint256 amountYt);
 
     function previewRedeemSy(
         uint256 amountPt
-    ) external view returns (uint256 amountSy);
+    ) external returns (uint256 amountSy);
+
+    function previewRedeemSyBeforeExpiry(
+        uint256 amountPt,
+        uint256 amountYt
+    ) external returns (uint256 amountSy);
+
+    function currentExchangeRate()
+        external
+        returns (uint256 _currentExchangeRate);
 }

@@ -32,9 +32,10 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
 
     uint256 private s_syReserve;
 
-    // This is the read form of currentExchangeRate() which gets updated at most function calls(every other block)
-    uint256 private s_exchangeRate;
-    uint256 private s_exchangeRateBlock;
+    // Used to store the non-decreasing form of SY.exchangeRate()
+    uint256 private s_storedExchangeRate;
+
+    // uint256 private s_storedExchangeRateUpdatedBlock; // check currentExchangeRate() for reaseon
 
     constructor(
         address _SY,
@@ -81,7 +82,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         address receiver,
         uint256 amountPt
     ) external expired returns (uint256 amountSy) {
-        return _redeemSy(receiver, amountPt, 0, true);
+        return _redeemSy(receiver, amountPt, amountPt);
     }
 
     /**
@@ -95,33 +96,59 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         uint256 amountPt,
         uint256 amountYt
     ) external notExpired returns (uint256 amountSy) {
-        return _redeemSy(receiver, amountPt, amountYt, false);
+        return _redeemSy(receiver, amountPt, amountYt);
     }
 
     function _redeemSy(
         address receiver,
         uint256 amountPt,
-        uint256 amountYt,
-        bool _isExpired
+        uint256 amountYt
     ) internal returns (uint256 amountSy) {
-        if (!_isExpired) {
-            require(amountPt == amountYt, "Unequal amounts of PT and YT");
-            _burn(msg.sender, amountYt);
+        if (!isExpired()) {
+            // Considering the minimum to be burnt
+            (amountPt, amountYt) = _getAdjustedPtYt(amountPt, amountYt);
         }
 
         IPT(PT).burnByYt(msg.sender, amountPt);
+        _burn(msg.sender, amountYt);
+
         amountSy = previewRedeemSy(amountPt);
         ISY(SY).transfer(receiver, amountSy);
 
         s_syReserve -= amountSy;
     }
 
-    function _currentExchangeRate()
-        internal
-        returns (uint256 currentExchangeRate)
+    // IMPORTANT - Need Clarity
+    // The SY exchange rate should be non-decreaing
+    // which is why we have stored exchange rate for reference
+
+    // IMPORTANT Has been changed - I feel currentExchangeRate can be
+    // different within same block
+    // that's why they also have cacheWithinSameblock option (That's why I commented it)
+    function currentExchangeRate()
+        public
+        returns (uint256 _currentExchangeRate)
     {
-        currentExchangeRate = PMath.max(ISY(SY).exchangeRate(), s_exchangeRate);
-        s_exchangeRate = currentExchangeRate;
+        // if (block.number == s_storedExchangeRateUpdatedBlock)
+        //     return currentExchangeRate = s_storedExchangeRate;
+
+        _currentExchangeRate = PMath.max(
+            ISY(SY).exchangeRate(),
+            s_storedExchangeRate
+        );
+
+        s_storedExchangeRate = _currentExchangeRate;
+        // s_storedExchangeRateUpdatedBlock = block.number;
+    }
+
+    function _getAdjustedPtYt(
+        uint256 _amountPt,
+        uint256 _amountYt
+    ) internal pure returns (uint256 amountPt, uint256 amountYt) {
+        uint256 minAmount = PMath.min(_amountPt, _amountYt);
+
+        amountPt = minAmount;
+        amountYt = minAmount;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -135,28 +162,34 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     // Might need to add expiry modifiers for these public view
     function previewStripSy(
         uint256 amountSy
-    ) public view returns (uint256 amountPt, uint256 amountYt) {
-        uint256 currentExchangeRate = ISY(SY).exchangeRate();
-
+    ) public returns (uint256 amountPt, uint256 amountYt) {
         // Formula
         // amountPtorYt = amountSy*exchangeRate (in terms of accounting asset)
-        amountYt = amountSy.mulDown(currentExchangeRate);
+        amountYt = amountSy.mulDown(currentExchangeRate());
         amountPt = amountYt;
     }
 
     function previewRedeemSy(
         uint256 amountPt
-    ) public view returns (uint256 amountSy) {
+    ) public returns (uint256 amountSy) {
         // Formula
         // amountSy = amountPt/exchangeRate (in terms of accounting asset)
-        amountSy = amountPt.divDown(ISY(SY).exchangeRate());
+        amountSy = amountPt.divDown(currentExchangeRate());
+    }
+
+    function previewRedeemSyBeforeExpiry(
+        uint256 amountPt,
+        uint256 amountYt
+    ) public returns (uint256 amountSy) {
+        (amountPt, ) = _getAdjustedPtYt(amountPt, amountYt);
+        amountSy = previewRedeemSy(amountPt);
     }
 
     /*///////////////////////////////////////////////////////////////
                             External View Functions
     //////////////////////////////////////////////////////////////*/
 
-    function isExpired() external view returns (bool) {
+    function isExpired() public view returns (bool) {
         return block.timestamp < i_expiry ? false : true;
     }
 
@@ -166,5 +199,9 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
 
     function factory() external view returns (address) {
         return i_factory;
+    }
+
+    function syReserve() external view returns (uint256) {
+        return s_syReserve;
     }
 }
