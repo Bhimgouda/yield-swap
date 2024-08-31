@@ -6,6 +6,7 @@ import {PMath} from "../../lib/PMath.sol";
 
 contract TestBase is Test {
     using PMath for uint256;
+
     address internal USER = makeAddr("USER");
 
     address internal INVALID_ADDRESS = makeAddr("INVALID");

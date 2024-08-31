@@ -37,13 +37,9 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
 
     // uint256 private s_storedExchangeRateUpdatedBlock; // check currentExchangeRate() for reaseon
 
-    constructor(
-        address _SY,
-        address _PT,
-        string memory _name,
-        string memory _symbol,
-        uint256 _expiry
-    ) ERC20(_name, _symbol) {
+    constructor(address _SY, address _PT, string memory _name, string memory _symbol, uint256 _expiry)
+        ERC20(_name, _symbol)
+    {
         SY = _SY;
         PT = _PT;
         i_expiry = _expiry;
@@ -60,10 +56,11 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         _;
     }
 
-    function stripSy(
-        address receiver,
-        uint256 amountSy
-    ) external notExpired returns (uint256 amountPt, uint256 amountYt) {
+    function stripSy(address receiver, uint256 amountSy)
+        external
+        notExpired
+        returns (uint256 amountPt, uint256 amountYt)
+    {
         ISY(SY).transferFrom(msg.sender, address(this), amountSy);
 
         (amountYt, amountPt) = previewStripSy(amountSy);
@@ -78,10 +75,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
      * @param amountPt PT amount to Burn and Redeem equivalent worth of SY in terms of the accounting asset
      * @notice Can only be called after expiry/maturity
      */
-    function redeemSy(
-        address receiver,
-        uint256 amountPt
-    ) external expired returns (uint256 amountSy) {
+    function redeemSy(address receiver, uint256 amountPt) external expired returns (uint256 amountSy) {
         return _redeemSy(receiver, amountPt, amountPt);
     }
 
@@ -91,19 +85,15 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
      * @param amountPt amount pt to Burn
      * @param amountYt amount yt to Burn
      */
-    function redeemSyBeforeExpiry(
-        address receiver,
-        uint256 amountPt,
-        uint256 amountYt
-    ) external notExpired returns (uint256 amountSy) {
+    function redeemSyBeforeExpiry(address receiver, uint256 amountPt, uint256 amountYt)
+        external
+        notExpired
+        returns (uint256 amountSy)
+    {
         return _redeemSy(receiver, amountPt, amountYt);
     }
 
-    function _redeemSy(
-        address receiver,
-        uint256 amountPt,
-        uint256 amountYt
-    ) internal returns (uint256 amountSy) {
+    function _redeemSy(address receiver, uint256 amountPt, uint256 amountYt) internal returns (uint256 amountSy) {
         if (!isExpired()) {
             // Considering the minimum to be burnt
             (amountPt, amountYt) = _getAdjustedPtYt(amountPt, amountYt);
@@ -125,26 +115,21 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     // IMPORTANT Has been changed - I feel currentExchangeRate can be
     // different within same block
     // that's why they also have cacheWithinSameblock option (That's why I commented it)
-    function currentExchangeRate()
-        public
-        returns (uint256 _currentExchangeRate)
-    {
+    function currentExchangeRate() public returns (uint256 _currentExchangeRate) {
         // if (block.number == s_storedExchangeRateUpdatedBlock)
         //     return currentExchangeRate = s_storedExchangeRate;
 
-        _currentExchangeRate = PMath.max(
-            ISY(SY).exchangeRate(),
-            s_storedExchangeRate
-        );
+        _currentExchangeRate = PMath.max(ISY(SY).exchangeRate(), s_storedExchangeRate);
 
         s_storedExchangeRate = _currentExchangeRate;
         // s_storedExchangeRateUpdatedBlock = block.number;
     }
 
-    function _getAdjustedPtYt(
-        uint256 _amountPt,
-        uint256 _amountYt
-    ) internal pure returns (uint256 amountPt, uint256 amountYt) {
+    function _getAdjustedPtYt(uint256 _amountPt, uint256 _amountYt)
+        internal
+        pure
+        returns (uint256 amountPt, uint256 amountYt)
+    {
         uint256 minAmount = PMath.min(_amountPt, _amountYt);
 
         amountPt = minAmount;
@@ -160,28 +145,21 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     //////////////////////////////////////////////////////////////*/
 
     // Might need to add expiry modifiers for these public view
-    function previewStripSy(
-        uint256 amountSy
-    ) public returns (uint256 amountPt, uint256 amountYt) {
+    function previewStripSy(uint256 amountSy) public returns (uint256 amountPt, uint256 amountYt) {
         // Formula
         // amountPtorYt = amountSy*exchangeRate (in terms of accounting asset)
         amountYt = amountSy.mulDown(currentExchangeRate());
         amountPt = amountYt;
     }
 
-    function previewRedeemSy(
-        uint256 amountPt
-    ) public returns (uint256 amountSy) {
+    function previewRedeemSy(uint256 amountPt) public returns (uint256 amountSy) {
         // Formula
         // amountSy = amountPt/exchangeRate (in terms of accounting asset)
         amountSy = amountPt.divDown(currentExchangeRate());
     }
 
-    function previewRedeemSyBeforeExpiry(
-        uint256 amountPt,
-        uint256 amountYt
-    ) public returns (uint256 amountSy) {
-        (amountPt, ) = _getAdjustedPtYt(amountPt, amountYt);
+    function previewRedeemSyBeforeExpiry(uint256 amountPt, uint256 amountYt) public returns (uint256 amountSy) {
+        (amountPt,) = _getAdjustedPtYt(amountPt, amountYt);
         amountSy = previewRedeemSy(amountPt);
     }
 

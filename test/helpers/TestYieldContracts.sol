@@ -27,10 +27,7 @@ contract TestYieldContracts is TestBase {
         return deployPtYtFactory.run(INTEREST_FEE_RATE, TREASURY);
     }
 
-    function _createPtYt(
-        address sy,
-        uint256 expiry
-    ) internal returns (address PT, address YT, address factory) {
+    function _createPtYt(address sy, uint256 expiry) internal returns (address PT, address YT, address factory) {
         IPtYtFactory ptYtFactory = IPtYtFactory(_deployPtYtFactory());
         factory = address(ptYtFactory);
 

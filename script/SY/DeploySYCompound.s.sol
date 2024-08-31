@@ -13,11 +13,7 @@ contract DeploySYCompound is Script {
         address cDaiToken = helperConfig.getConfig().yieldBearingTokens[0];
 
         vm.startBroadcast();
-        SYCompound syCompound = new SYCompound(
-            "SY Compound DAI",
-            "SY-cDai",
-            cDaiToken
-        );
+        SYCompound syCompound = new SYCompound("SY Compound DAI", "SY-cDai", cDaiToken);
         vm.stopBroadcast();
 
         return address(syCompound);

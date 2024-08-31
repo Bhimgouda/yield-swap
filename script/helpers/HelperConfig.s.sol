@@ -9,7 +9,6 @@ import {console} from "forge-std/console.sol";
  * @author
  * @notice We will only use forks on anvil (local)
  */
-
 contract HelperConfig is Script {
     uint256 private SEPOLIA_CHAIN_ID = 11155111;
     uint256 private MAINNET_CHAIN_ID = 1;
@@ -20,11 +19,7 @@ contract HelperConfig is Script {
         address[2] yieldBearingTokens;
     }
 
-    function getConfig()
-        external
-        view
-        returns (NetworkConfig memory networkConfig)
-    {
+    function getConfig() external view returns (NetworkConfig memory networkConfig) {
         if (block.chainid == MAINNET_FORK_CHAIN_ID) {
             networkConfig = getMainnetForkConfig();
         } else if (block.chainid == SEPOLIA_CHAIN_ID) {
@@ -36,30 +31,18 @@ contract HelperConfig is Script {
 
     function getSepoliaConfig() internal pure returns (NetworkConfig memory) {}
 
-    function getEthMainnetConfig()
-        internal
-        pure
-        returns (NetworkConfig memory)
-    {}
+    function getEthMainnetConfig() internal pure returns (NetworkConfig memory) {}
 
     /*///////////////////////////////////////////////////////////////
                             FORK CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    function getMainnetForkConfig()
-        internal
-        pure
-        returns (NetworkConfig memory)
-    {
+    function getMainnetForkConfig() internal pure returns (NetworkConfig memory) {
         return NetworkConfig({yieldBearingTokens: _getYieldBearingTokens()});
     }
 
     // Only cDai is the yield bearing token for now
-    function _getYieldBearingTokens()
-        internal
-        pure
-        returns (address[2] memory yieldBearingTokens)
-    {
+    function _getYieldBearingTokens() internal pure returns (address[2] memory yieldBearingTokens) {
         yieldBearingTokens[0] = 0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643;
         yieldBearingTokens[1] = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
     }

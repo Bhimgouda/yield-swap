@@ -16,7 +16,6 @@ import {ISY} from "../../../src/interfaces/core/ISY.sol";
  * @notice Using SYWstEth to test SYBase SYBase is a abstract contract
  * used by all SY implementation contracts
  */
-
 contract TestSYBase is TestSY {
     ISY private SY;
 

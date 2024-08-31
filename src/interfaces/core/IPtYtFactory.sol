@@ -5,25 +5,14 @@ interface IPtYtFactory {
     /*///////////////////////////////////////////////////////////////
                             Events
     //////////////////////////////////////////////////////////////*/
-    event PtYtCreated(
-        address indexed pt,
-        address indexed yt,
-        address indexed sy,
-        uint256 expiry
-    );
+    event PtYtCreated(address indexed pt, address indexed yt, address indexed sy, uint256 expiry);
     event InterestFeeRateUpdated(uint256 oldRate, uint256 newRate);
-    event TreasuryUpdated(
-        address indexed oldTreasury,
-        address indexed newTreasury
-    );
+    event TreasuryUpdated(address indexed oldTreasury, address indexed newTreasury);
 
     /*///////////////////////////////////////////////////////////////
                             Functions
     //////////////////////////////////////////////////////////////*/
-    function createPtYt(
-        address sy,
-        uint256 expiry
-    ) external returns (address pt, address yt);
+    function createPtYt(address sy, uint256 expiry) external returns (address pt, address yt);
 
     function setInterestFeeRate(uint256 newInterestFeeRate) external;
 

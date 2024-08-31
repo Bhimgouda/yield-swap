@@ -15,7 +15,6 @@ import {IPT} from "../../../src/interfaces/core/IPT.sol";
  * @author
  * @notice Using SYWstEth to test TestYieldContracts, For context SYWstEth is a GYGP Token with no rewards
  */
-
 contract TestPtYtFactory is TestYieldContracts {
     IPtYtFactory private ptYtFactory;
     address private FACTORY_OWNER;
@@ -29,10 +28,7 @@ contract TestPtYtFactory is TestYieldContracts {
                             PT-YT FACTORY TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testSetInterestFeeRateUpdatesInterestFeeRate()
-        external
-        prank(FACTORY_OWNER)
-    {
+    function testSetInterestFeeRateUpdatesInterestFeeRate() external prank(FACTORY_OWNER) {
         uint256 newInterestFeeRate = INTEREST_FEE_RATE + 10;
         ptYtFactory.setInterestFeeRate(newInterestFeeRate);
         assertEq(ptYtFactory.getInterestFeeRate(), newInterestFeeRate);

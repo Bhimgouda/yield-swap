@@ -19,12 +19,7 @@ contract PrincipalToken is ERC20 {
         _;
     }
 
-    constructor(
-        address _SY,
-        string memory _name,
-        string memory _symbol,
-        uint256 _expiry
-    ) ERC20(_name, _symbol) {
+    constructor(address _SY, string memory _name, string memory _symbol, uint256 _expiry) ERC20(_name, _symbol) {
         SY = _SY;
         i_expiry = _expiry;
         i_factory = msg.sender;

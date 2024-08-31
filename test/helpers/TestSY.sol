@@ -19,11 +19,7 @@ contract TestSY is TestBase {
         return helperConfig.getConfig().yieldBearingTokens[0];
     }
 
-    function _mintCdaiForUser(
-        address cdai,
-        address user,
-        uint256 amountDai
-    ) internal {
+    function _mintCdaiForUser(address cdai, address user, uint256 amountDai) internal {
         address dai = ICdai(cdai).underlying();
 
         // Minted DAI for the user
@@ -34,11 +30,7 @@ contract TestSY is TestBase {
         ICdai(cdai).mint(amountDai);
     }
 
-    function _mintWstEthForUser(
-        address wstEth,
-        address user,
-        uint256 amountWstEth
-    ) internal {
+    function _mintWstEthForUser(address wstEth, address user, uint256 amountWstEth) internal {
         // MinteD wstEth Directly
         deal(wstEth, user, amountWstEth, true);
     }
