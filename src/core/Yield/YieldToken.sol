@@ -35,8 +35,6 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     // Used to store the non-decreasing form of SY.exchangeRate()
     uint256 private s_storedExchangeRate;
 
-    // uint256 private s_storedExchangeRateUpdatedBlock; // check currentExchangeRate() for reaseon
-
     constructor(address _SY, address _PT, string memory _name, string memory _symbol, uint256 _expiry)
         ERC20(_name, _symbol)
     {
@@ -108,21 +106,13 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         s_syReserve -= amountSy;
     }
 
-    // IMPORTANT - Need Clarity
+    // IMPORTANT - Need more Clarity
     // The SY exchange rate should be non-decreaing
-    // which is why we have stored exchange rate for reference
-
-    // IMPORTANT Has been changed - I feel currentExchangeRate can be
-    // different within same block
-    // that's why they also have cacheWithinSameblock option (That's why I commented it)
+    // which is why we have stored an internal exchange rate for comparision
     function currentExchangeRate() public returns (uint256 _currentExchangeRate) {
-        // if (block.number == s_storedExchangeRateUpdatedBlock)
-        //     return currentExchangeRate = s_storedExchangeRate;
-
         _currentExchangeRate = PMath.max(ISY(SY).exchangeRate(), s_storedExchangeRate);
 
         s_storedExchangeRate = _currentExchangeRate;
-        // s_storedExchangeRateUpdatedBlock = block.number;
     }
 
     function _getAdjustedPtYt(uint256 _amountPt, uint256 _amountYt)
@@ -135,10 +125,6 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         amountPt = minAmount;
         amountYt = minAmount;
     }
-
-    /*///////////////////////////////////////////////////////////////
-                            INTEREST-RELATED FUNCTIONS
-    //////////////////////////////////////////////////////////////*/
 
     /*///////////////////////////////////////////////////////////////
                             Preview-Related FUNCTIONS
@@ -162,6 +148,10 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         (amountPt,) = _getAdjustedPtYt(amountPt, amountYt);
         amountSy = previewRedeemSy(amountPt);
     }
+
+    /*///////////////////////////////////////////////////////////////
+                            INTEREST-RELATED FUNCTIONS
+    //////////////////////////////////////////////////////////////*/
 
     /*///////////////////////////////////////////////////////////////
                             External View Functions

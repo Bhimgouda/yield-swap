@@ -19,7 +19,8 @@ contract TestYieldContracts is TestBase {
     function _deploySYForTesting() internal returns (address) {
         // Deploy a SY Token for tests
         DeploySYWstEth deploySYWstEth = new DeploySYWstEth();
-        return deploySYWstEth.run();
+        (address SY,) = deploySYWstEth.run();
+        return SY;
     }
 
     function _deployPtYtFactory() internal returns (address) {
@@ -39,12 +40,9 @@ contract TestYieldContracts is TestBase {
     function _mintSYForUser(ISY sy, address user, uint256 amountSy) internal {
         // Works when sy:syUnderlying is 1:1
         uint256 amountUnderlying = amountSy;
-
-        // Minted syUnderlying/ibToken Directly
-
         address syUnderlying = sy.yieldToken();
 
-        deal(syUnderlying, user, amountUnderlying, true);
+        _mintWstEthForUser(syUnderlying, user, amountUnderlying);
         IERC20(syUnderlying).approve(address(sy), amountUnderlying);
 
         sy.deposit(user, syUnderlying, amountUnderlying, amountSy);

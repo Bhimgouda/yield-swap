@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.24;
 
-import {TestSY} from "../../helpers/TestSY.sol";
+import {TestBase} from "../../helpers/TestBase.sol";
 import {console} from "forge-std/console.sol";
 
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -16,8 +16,8 @@ import {ISY} from "../../../src/interfaces/core/ISY.sol";
  * @notice Using SYWstEth to test SYBase SYBase is a abstract contract
  * used by all SY implementation contracts
  */
-contract TestSYBase is TestSY {
-    ISY private SY;
+contract TestSYBase is TestBase {
+    ISY private sy;
 
     // The Underlying Asset
     address private wstEth;
@@ -29,17 +29,11 @@ contract TestSYBase is TestSY {
     uint256 AMOUNT_SY_BURN = 100e18;
 
     function setUp() external {
-        wstEth = _getWstEth();
-
         DeploySYWstEth deploySYWstEth = new DeploySYWstEth();
-        SY = ISY(deploySYWstEth.run());
-    }
+        (address SY, address _wstEth) = deploySYWstEth.run();
 
-    modifier deposited() {
-        _mintWstEthForUser(wstEth, USER, AMOUNT_WSTETH_DEPOSIT);
-        IERC20(wstEth).approve(address(SY), AMOUNT_WSTETH_DEPOSIT);
-        SY.deposit(USER, wstEth, AMOUNT_WSTETH_DEPOSIT, AMOUNT_SY_MINT);
-        _;
+        sy = ISY(SY);
+        wstEth = _wstEth;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -51,19 +45,19 @@ contract TestSYBase is TestSY {
 
         // Arrange
         uint256 userWstEthStartBal = IERC20(wstEth).balanceOf(USER);
-        uint256 userSYStartBal = SY.balanceOf(USER);
-        uint256 syWstEthStartBal = IERC20(wstEth).balanceOf(address(SY));
-        uint256 syStartTotalSupply = SY.totalSupply();
+        uint256 userSYStartBal = sy.balanceOf(USER);
+        uint256 syWstEthStartBal = IERC20(wstEth).balanceOf(address(sy));
+        uint256 syStartTotalSupply = sy.totalSupply();
 
         // Act
-        IERC20(wstEth).approve(address(SY), AMOUNT_WSTETH_DEPOSIT);
-        SY.deposit(USER, wstEth, AMOUNT_WSTETH_DEPOSIT, AMOUNT_SY_MINT);
+        IERC20(wstEth).approve(address(sy), AMOUNT_WSTETH_DEPOSIT);
+        sy.deposit(USER, wstEth, AMOUNT_WSTETH_DEPOSIT, AMOUNT_SY_MINT);
 
         // Assert
         uint256 userWstEthEndBal = IERC20(wstEth).balanceOf(USER);
-        uint256 userSYEndBal = SY.balanceOf(USER);
-        uint256 syWstEthEndBal = IERC20(wstEth).balanceOf(address(SY));
-        uint256 syEndTotalSupply = SY.totalSupply();
+        uint256 userSYEndBal = sy.balanceOf(USER);
+        uint256 syWstEthEndBal = IERC20(wstEth).balanceOf(address(sy));
+        uint256 syEndTotalSupply = sy.totalSupply();
 
         assertEq(userWstEthStartBal - userWstEthEndBal, AMOUNT_WSTETH_DEPOSIT);
         assertEq(userSYEndBal - userSYStartBal, AMOUNT_SY_MINT);
@@ -71,25 +65,33 @@ contract TestSYBase is TestSY {
         assertEq(syEndTotalSupply - syStartTotalSupply, AMOUNT_SY_MINT);
     }
 
-    function testRedeem() external prankUser deposited {
+    function testRedeem() external prankUser {
+        _deposit();
+
         // Arrange
         uint256 userWstEthStartBal = IERC20(wstEth).balanceOf(USER);
-        uint256 userSYStartBal = SY.balanceOf(USER);
-        uint256 syWstEthStartBal = IERC20(wstEth).balanceOf(address(SY));
-        uint256 syStartTotalSupply = SY.totalSupply();
+        uint256 userSYStartBal = sy.balanceOf(USER);
+        uint256 syWstEthStartBal = IERC20(wstEth).balanceOf(address(sy));
+        uint256 syStartTotalSupply = sy.totalSupply();
 
         // Act
-        SY.redeem(USER, AMOUNT_SY_BURN, wstEth, AMOUNT_WSTETH_REDEEM, false);
+        sy.redeem(USER, AMOUNT_SY_BURN, wstEth, AMOUNT_WSTETH_REDEEM, false);
 
         // Assert
         uint256 userWstEthEndBal = IERC20(wstEth).balanceOf(USER);
-        uint256 userSYEndBal = SY.balanceOf(USER);
-        uint256 syWstEthEndBal = IERC20(wstEth).balanceOf(address(SY));
-        uint256 syEndTotalSupply = SY.totalSupply();
+        uint256 userSYEndBal = sy.balanceOf(USER);
+        uint256 syWstEthEndBal = IERC20(wstEth).balanceOf(address(sy));
+        uint256 syEndTotalSupply = sy.totalSupply();
 
         assertEq(userWstEthEndBal - userWstEthStartBal, AMOUNT_WSTETH_REDEEM);
         assertEq(userSYStartBal - userSYEndBal, AMOUNT_SY_BURN);
         assertEq(syWstEthStartBal - syWstEthEndBal, AMOUNT_WSTETH_REDEEM);
         assertEq(syStartTotalSupply - syEndTotalSupply, AMOUNT_SY_BURN);
+    }
+
+    function _deposit() internal {
+        _mintWstEthForUser(wstEth, USER, AMOUNT_WSTETH_DEPOSIT);
+        IERC20(wstEth).approve(address(sy), AMOUNT_WSTETH_DEPOSIT);
+        sy.deposit(USER, wstEth, AMOUNT_WSTETH_DEPOSIT, AMOUNT_SY_MINT);
     }
 }

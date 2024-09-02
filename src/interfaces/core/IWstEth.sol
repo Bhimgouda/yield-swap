@@ -13,10 +13,4 @@ interface IWstEth is IERC20Metadata {
     function getWstETHByStETH(uint256 _stETHAmount) external view returns (uint256);
 
     function getStETHByWstETH(uint256 _wstETHAmount) external view returns (uint256);
-
-    function stEthPerToken() external view returns (uint256);
-
-    function tokensPerStEth() external view returns (uint256);
-
-    // receive() external payable;
 }

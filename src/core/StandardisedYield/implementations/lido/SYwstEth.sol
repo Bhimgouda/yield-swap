@@ -5,6 +5,7 @@ import {SYBase} from "../../SYBase.sol";
 import {IWstEth} from "../../../../interfaces/core/IWstEth.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {TokenDecimals} from "../../../libraries/TokenDecimals.sol";
+import {console} from "forge-std/console.sol";
 
 contract SYWstEth is SYBase {
     using TokenDecimals for uint256;

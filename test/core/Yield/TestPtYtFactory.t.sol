@@ -20,7 +20,6 @@ contract TestPtYtFactory is TestYieldContracts {
     address private FACTORY_OWNER;
 
     function setUp() external {
-        ptYtFactory = IPtYtFactory(_deployPtYtFactory());
         FACTORY_OWNER = ptYtFactory.owner();
     }
 
@@ -28,7 +27,10 @@ contract TestPtYtFactory is TestYieldContracts {
                             PT-YT FACTORY TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testSetInterestFeeRateUpdatesInterestFeeRate() external prank(FACTORY_OWNER) {
+    function testSetInterestFeeRateUpdatesInterestFeeRate()
+        external
+        prank(FACTORY_OWNER)
+    {
         uint256 newInterestFeeRate = INTEREST_FEE_RATE + 10;
         ptYtFactory.setInterestFeeRate(newInterestFeeRate);
         assertEq(ptYtFactory.getInterestFeeRate(), newInterestFeeRate);

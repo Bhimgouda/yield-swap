@@ -8,14 +8,12 @@ import {HelperConfig} from "../helpers/HelperConfig.s.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
 contract DeploySYCompound is Script {
-    function run() external returns (address) {
+    function run() external returns (address SY, address yieldBearingToken) {
         HelperConfig helperConfig = new HelperConfig();
-        address cDaiToken = helperConfig.getConfig().yieldBearingTokens[0];
+        yieldBearingToken = helperConfig.getConfig().yieldBearingTokens[0];
 
         vm.startBroadcast();
-        SYCompound syCompound = new SYCompound("SY Compound DAI", "SY-cDai", cDaiToken);
+        SY = address(new SYCompound("SY Compound DAI", "SY-cDai", yieldBearingToken));
         vm.stopBroadcast();
-
-        return address(syCompound);
     }
 }
