@@ -20,6 +20,7 @@ contract TestPtYtFactory is TestYieldContracts {
     address private FACTORY_OWNER;
 
     function setUp() external {
+        ptYtFactory = IPtYtFactory(_deployPtYtFactory());
         FACTORY_OWNER = ptYtFactory.owner();
     }
 
