@@ -28,31 +28,34 @@ contract TestPtYtFactory is TestYieldContracts {
                             PT-YT FACTORY TESTS
     //////////////////////////////////////////////////////////////*/
 
-    function testSetInterestFeeRateUpdatesInterestFeeRate() external prank(FACTORY_OWNER) {
+    function testSetInterestFeeRateUpdatesInterestFeeRate()
+        external
+        prank(FACTORY_OWNER)
+    {
         uint256 newInterestFeeRate = INTEREST_FEE_RATE + 10;
         ptYtFactory.setInterestFeeRate(newInterestFeeRate);
-        assertEq(ptYtFactory.getInterestFeeRate(), newInterestFeeRate);
+        assertEq(ptYtFactory.interestFeeRate(), newInterestFeeRate);
     }
 
     function testSetTreasuryUpdatesTreasury() external prank(FACTORY_OWNER) {
         address newTreasury = makeAddr("NEW TREASURY");
         ptYtFactory.setTreasury(newTreasury);
-        assertEq(ptYtFactory.getTreasury(), newTreasury);
+        assertEq(ptYtFactory.treasury(), newTreasury);
     }
 
     /*///////////////////////////////////////////////////////////////
                     Tests for External-View Functions
     //////////////////////////////////////////////////////////////*/
 
-    function testGetInterestFeeRate() external view {
-        uint256 interestFeeRate = ptYtFactory.getInterestFeeRate();
+    function testinterestFeeRate() external view {
+        uint256 interestFeeRate = ptYtFactory.interestFeeRate();
         uint256 expectedInterestFeeRate = INTEREST_FEE_RATE;
 
         assertEq(interestFeeRate, expectedInterestFeeRate);
     }
 
-    function testGetTreasury() external view {
-        address treasury = ptYtFactory.getTreasury();
+    function testtreasury() external view {
+        address treasury = ptYtFactory.treasury();
         address expectedTreasury = TREASURY;
 
         assertEq(treasury, expectedTreasury);

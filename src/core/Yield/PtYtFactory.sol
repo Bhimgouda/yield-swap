@@ -29,7 +29,8 @@ contract PtYtFactory is Ownable(msg.sender) {
 
     modifier interestFeeRateInRange(uint256 _interestFeeRate) {
         require(
-            MIN_INTEREST_FEE_RATE < _interestFeeRate && _interestFeeRate < MAX_INTEREST_FEE_RATE,
+            MIN_INTEREST_FEE_RATE < _interestFeeRate &&
+                _interestFeeRate < MAX_INTEREST_FEE_RATE,
             "Interest Fee Rate Out of Range"
         );
         _;
@@ -40,21 +41,34 @@ contract PtYtFactory is Ownable(msg.sender) {
         _;
     }
 
-    constructor(uint256 interestFeeRate, address treasury)
-        interestFeeRateInRange(interestFeeRate)
-        validTreasury(treasury)
-    {
+    constructor(
+        uint256 interestFeeRate,
+        address treasury
+    ) interestFeeRateInRange(interestFeeRate) validTreasury(treasury) {
         s_interestFeeRate = interestFeeRate;
         s_treasury = treasury;
     }
 
-    function createPtYt(address sy, uint256 expiry) external returns (address pt, address yt) {
-        (string memory ptName, string memory ptSymbol, string memory ytName, string memory ytSymbol) =
-            _generatePtYtMetadata(sy);
+    function createPtYt(
+        address sy,
+        uint256 expiry
+    ) external returns (address pt, address yt) {
+        (
+            string memory ptName,
+            string memory ptSymbol,
+            string memory ytName,
+            string memory ytSymbol
+        ) = _generatePtYtMetadata(sy);
 
         PrincipalToken PT = new PrincipalToken(sy, ptName, ptSymbol, expiry);
 
-        YieldToken YT = new YieldToken(sy, address(PT), ytName, ytSymbol, expiry);
+        YieldToken YT = new YieldToken(
+            sy,
+            address(PT),
+            ytName,
+            ytSymbol,
+            expiry
+        );
 
         PT.initialize(address(YT));
 
@@ -62,15 +76,15 @@ contract PtYtFactory is Ownable(msg.sender) {
         yt = address(YT);
     }
 
-    function setInterestFeeRate(uint256 newInterestFeeRate)
-        external
-        onlyOwner
-        interestFeeRateInRange(newInterestFeeRate)
-    {
+    function setInterestFeeRate(
+        uint256 newInterestFeeRate
+    ) external onlyOwner interestFeeRateInRange(newInterestFeeRate) {
         s_interestFeeRate = newInterestFeeRate;
     }
 
-    function setTreasury(address newTreasury) external onlyOwner validTreasury(newTreasury) {
+    function setTreasury(
+        address newTreasury
+    ) external onlyOwner validTreasury(newTreasury) {
         s_treasury = newTreasury;
     }
 
@@ -81,10 +95,17 @@ contract PtYtFactory is Ownable(msg.sender) {
     /**
      * @dev generates the pt and yt name based on the sy's metadata
      */
-    function _generatePtYtMetadata(address sy)
+    function _generatePtYtMetadata(
+        address sy
+    )
         internal
         view
-        returns (string memory ptName, string memory ptSymbol, string memory ytName, string memory ytSymbol)
+        returns (
+            string memory ptName,
+            string memory ptSymbol,
+            string memory ytName,
+            string memory ytSymbol
+        )
     {
         (string memory _syName, string memory _sySymbol) = _getSyMetadata(sy);
 
@@ -93,16 +114,30 @@ contract PtYtFactory is Ownable(msg.sender) {
         StringLib.slice memory syNameBeyond = SY_NAME_BEYOND.toSlice();
         StringLib.slice memory sySymbolBeyond = SY_SYMBOL_BEYOND.toSlice();
 
-        ptName = StringLib.concat(PT_NAME_PREFIX.toSlice(), syName.beyond(syNameBeyond));
+        ptName = StringLib.concat(
+            PT_NAME_PREFIX.toSlice(),
+            syName.beyond(syNameBeyond)
+        );
 
-        ptSymbol = StringLib.concat(PT_SYMBOL_PREFIX.toSlice(), sySymbol.beyond(sySymbolBeyond));
+        ptSymbol = StringLib.concat(
+            PT_SYMBOL_PREFIX.toSlice(),
+            sySymbol.beyond(sySymbolBeyond)
+        );
 
-        ytName = StringLib.concat(YT_NAME_PREFIX.toSlice(), syName.beyond(syNameBeyond));
+        ytName = StringLib.concat(
+            YT_NAME_PREFIX.toSlice(),
+            syName.beyond(syNameBeyond)
+        );
 
-        ytSymbol = StringLib.concat(YT_SYMBOL_PREFIX.toSlice(), sySymbol.beyond(sySymbolBeyond));
+        ytSymbol = StringLib.concat(
+            YT_SYMBOL_PREFIX.toSlice(),
+            sySymbol.beyond(sySymbolBeyond)
+        );
     }
 
-    function _getSyMetadata(address sy) internal view returns (string memory name, string memory symbol) {
+    function _getSyMetadata(
+        address sy
+    ) internal view returns (string memory name, string memory symbol) {
         name = IERC20Metadata(sy).name();
         symbol = IERC20Metadata(sy).symbol();
     }
@@ -111,11 +146,11 @@ contract PtYtFactory is Ownable(msg.sender) {
                             External View
     //////////////////////////////////////////////////////////////*/
 
-    function getInterestFeeRate() external view returns (uint256) {
+    function interestFeeRate() external view returns (uint256) {
         return s_interestFeeRate;
     }
 
-    function getTreasury() external view returns (address) {
+    function treasury() external view returns (address) {
         return s_treasury;
     }
 }

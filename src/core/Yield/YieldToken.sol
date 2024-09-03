@@ -1,13 +1,14 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
 pragma solidity 0.8.24;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {RewardManager} from "./Manager/RewardManager.sol";
 import {InterestManager} from "./Manager/InterestManager.sol";
 import {IPT} from "../../interfaces/core/IPT.sol";
 import {ISY} from "../../interfaces/core/ISY.sol";
+import {IPtYtFactory} from "../../interfaces/core/IPtYtFactory.sol";
 import {PMath} from "../libraries/math/PMath.sol";
 import {console} from "forge-std/console.sol";
+import {MERC20} from "../ModifiedERC20.sol";
 
 // Complies only to the GYGP model
 // Is Not expired
@@ -22,7 +23,7 @@ import {console} from "forge-std/console.sol";
  * @notice The Yield Token also serves as the Yield Stripping Pool
  * holding users underlying SY, minting PT's, managing accruedInterest and rewards
  */
-contract YieldToken is ERC20, InterestManager, RewardManager {
+contract YieldToken is MERC20, InterestManager, RewardManager {
     using PMath for uint256;
 
     address public immutable SY;
@@ -30,14 +31,19 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     address public immutable i_factory;
     uint256 private immutable i_expiry;
 
-    uint256 private s_syReserve;
-
     // Used to store the non-decreasing form of SY.exchangeRate()
     uint256 private s_storedExchangeRate;
 
-    constructor(address _SY, address _PT, string memory _name, string memory _symbol, uint256 _expiry)
-        ERC20(_name, _symbol)
-    {
+    // Interest Related
+    uint256 private s_lastInterestCollectedExchangeRate;
+
+    constructor(
+        address _SY,
+        address _PT,
+        string memory _name,
+        string memory _symbol,
+        uint256 _expiry
+    ) MERC20(_name, _symbol, 18) {
         SY = _SY;
         PT = _PT;
         i_expiry = _expiry;
@@ -54,26 +60,26 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         _;
     }
 
-    function stripSy(address receiver, uint256 amountSy)
-        external
-        notExpired
-        returns (uint256 amountPt, uint256 amountYt)
-    {
+    function stripSy(
+        address receiver,
+        uint256 amountSy
+    ) external notExpired returns (uint256 amountPt, uint256 amountYt) {
         ISY(SY).transferFrom(msg.sender, address(this), amountSy);
 
         (amountYt, amountPt) = previewStripSy(amountSy);
 
         _mint(receiver, amountYt);
         IPT(PT).mintByYt(receiver, amountPt);
-
-        s_syReserve += amountSy;
     }
 
     /**
      * @param amountPt PT amount to Burn and Redeem equivalent worth of SY in terms of the accounting asset
      * @notice Can only be called after expiry/maturity
      */
-    function redeemSy(address receiver, uint256 amountPt) external expired returns (uint256 amountSy) {
+    function redeemSy(
+        address receiver,
+        uint256 amountPt
+    ) external expired returns (uint256 amountSy) {
         return _redeemSy(receiver, amountPt, amountPt);
     }
 
@@ -83,15 +89,26 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
      * @param amountPt amount pt to Burn
      * @param amountYt amount yt to Burn
      */
-    function redeemSyBeforeExpiry(address receiver, uint256 amountPt, uint256 amountYt)
-        external
-        notExpired
-        returns (uint256 amountSy)
-    {
+    function redeemSyBeforeExpiry(
+        address receiver,
+        uint256 amountPt,
+        uint256 amountYt
+    ) external notExpired returns (uint256 amountSy) {
         return _redeemSy(receiver, amountPt, amountYt);
     }
 
-    function _redeemSy(address receiver, uint256 amountPt, uint256 amountYt) internal returns (uint256 amountSy) {
+    function redeemDueInterest(
+        address user
+    ) external returns (uint256 interestOut) {
+        _updateAndDistributeInterest(user);
+        interestOut = _doTransferOutInterest(user, SY);
+    }
+
+    function _redeemSy(
+        address receiver,
+        uint256 amountPt,
+        uint256 amountYt
+    ) internal returns (uint256 amountSy) {
         if (!isExpired()) {
             // Considering the minimum to be burnt
             (amountPt, amountYt) = _getAdjustedPtYt(amountPt, amountYt);
@@ -102,28 +119,31 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
 
         amountSy = previewRedeemSy(amountPt);
         ISY(SY).transfer(receiver, amountSy);
+    }
 
-        s_syReserve -= amountSy;
+    function _getAdjustedPtYt(
+        uint256 _amountPt,
+        uint256 _amountYt
+    ) internal pure returns (uint256 amountPt, uint256 amountYt) {
+        uint256 minAmount = PMath.min(_amountPt, _amountYt);
+
+        amountPt = minAmount;
+        amountYt = minAmount;
     }
 
     // IMPORTANT - Need more Clarity
     // The SY exchange rate should be non-decreaing
     // which is why we have stored an internal exchange rate for comparision
-    function currentExchangeRate() public returns (uint256 _currentExchangeRate) {
-        _currentExchangeRate = PMath.max(ISY(SY).exchangeRate(), s_storedExchangeRate);
+    function currentExchangeRate()
+        public
+        returns (uint256 _currentExchangeRate)
+    {
+        _currentExchangeRate = PMath.max(
+            ISY(SY).exchangeRate(),
+            s_storedExchangeRate
+        );
 
         s_storedExchangeRate = _currentExchangeRate;
-    }
-
-    function _getAdjustedPtYt(uint256 _amountPt, uint256 _amountYt)
-        internal
-        pure
-        returns (uint256 amountPt, uint256 amountYt)
-    {
-        uint256 minAmount = PMath.min(_amountPt, _amountYt);
-
-        amountPt = minAmount;
-        amountYt = minAmount;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -131,27 +151,95 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     //////////////////////////////////////////////////////////////*/
 
     // Might need to add expiry modifiers for these public view
-    function previewStripSy(uint256 amountSy) public returns (uint256 amountPt, uint256 amountYt) {
+    function previewStripSy(
+        uint256 amountSy
+    ) public returns (uint256 amountPt, uint256 amountYt) {
         // Formula
         // amountPtorYt = amountSy*exchangeRate (in terms of accounting asset)
         amountYt = amountSy.mulDown(currentExchangeRate());
         amountPt = amountYt;
     }
 
-    function previewRedeemSy(uint256 amountPt) public returns (uint256 amountSy) {
+    function previewRedeemSy(
+        uint256 amountPt
+    ) public returns (uint256 amountSy) {
         // Formula
         // amountSy = amountPt/exchangeRate (in terms of accounting asset)
         amountSy = amountPt.divDown(currentExchangeRate());
     }
 
-    function previewRedeemSyBeforeExpiry(uint256 amountPt, uint256 amountYt) public returns (uint256 amountSy) {
-        (amountPt,) = _getAdjustedPtYt(amountPt, amountYt);
+    function previewRedeemSyBeforeExpiry(
+        uint256 amountPt,
+        uint256 amountYt
+    ) public returns (uint256 amountSy) {
+        (amountPt, ) = _getAdjustedPtYt(amountPt, amountYt);
         amountSy = previewRedeemSy(amountPt);
     }
 
     /*///////////////////////////////////////////////////////////////
                             INTEREST-RELATED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
+
+    function _collectInterest()
+        internal
+        override
+        returns (uint256 interestAccrued)
+    {
+        uint256 _prevExchangeRate = s_lastInterestCollectedExchangeRate;
+        uint256 _currentExchangeRate = currentExchangeRate();
+        if (_currentExchangeRate != _prevExchangeRate) {
+            uint256 principal = totalSupply();
+
+            uint256 totalInterest = _calculateInterest(
+                principal,
+                _prevExchangeRate,
+                _currentExchangeRate
+            );
+
+            // Interst Fee deductions after expiry all the interest goes to treasury
+            address treaury = IPtYtFactory(i_factory).treasury();
+            uint256 interestFeeRate = isExpired()
+                ? PMath.ONE
+                : IPtYtFactory(i_factory).interestFeeRate();
+            uint256 interestFeeAmount = totalInterest.mulDown(interestFeeRate);
+            _transferOut(SY, treaury, interestFeeAmount);
+
+            interestAccrued = totalInterest - interestFeeAmount;
+            s_lastInterestCollectedExchangeRate = block.number;
+        } else {
+            interestAccrued = 0;
+        }
+    }
+
+    // Formula - Is a simplified version of (prinicpal * (1/prevPrice - 1/currentPrice))
+    function _calculateInterest(
+        uint256 principal,
+        uint256 _prevExchangeRate,
+        uint256 _currentExchangeRate
+    ) internal pure returns (uint256) {
+        return
+            (principal * (_currentExchangeRate - _prevExchangeRate)).divDown(
+                _prevExchangeRate * _currentExchangeRate
+            );
+    }
+
+    function _ytSupply() internal view override returns (uint256) {
+        return totalSupply();
+    }
+
+    function _ytBalanceOf(
+        address user
+    ) internal view override returns (uint256) {
+        return balanceOf(user);
+    }
+
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256
+    ) internal override {
+        _updateAndDistributeInterestForTwo(from, to);
+    }
 
     /*///////////////////////////////////////////////////////////////
                             External View Functions
@@ -170,6 +258,6 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     }
 
     function syReserve() external view returns (uint256) {
-        return s_syReserve;
+        return _selfBalance(SY);
     }
 }
