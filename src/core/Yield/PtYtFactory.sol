@@ -27,6 +27,13 @@ contract PtYtFactory is Ownable(msg.sender) {
     // Treasury address for receiving fees
     address private s_treasury;
 
+    // SY => expiry => address
+    // returns address(0) if not created
+    mapping(address => mapping(uint256 => address)) public getPT;
+    mapping(address => mapping(uint256 => address)) public getYT;
+    mapping(address => bool) public isPT;
+    mapping(address => bool) public isYT;
+
     modifier interestFeeRateInRange(uint256 _interestFeeRate) {
         require(
             MIN_INTEREST_FEE_RATE < _interestFeeRate &&
@@ -36,44 +43,39 @@ contract PtYtFactory is Ownable(msg.sender) {
         _;
     }
 
-    modifier validTreasury(address treasury) {
-        require(treasury != address(0), "Treasury address cannot be Zero");
+    modifier validTreasury(address _treasury) {
+        require(_treasury != address(0), "Treasury address cannot be Zero");
         _;
     }
 
     constructor(
-        uint256 interestFeeRate,
-        address treasury
-    ) interestFeeRateInRange(interestFeeRate) validTreasury(treasury) {
-        s_interestFeeRate = interestFeeRate;
-        s_treasury = treasury;
+        uint256 _interestFeeRate,
+        address _treasury
+    ) interestFeeRateInRange(_interestFeeRate) validTreasury(_treasury) {
+        s_interestFeeRate = _interestFeeRate;
+        s_treasury = _treasury;
     }
 
     function createPtYt(
-        address sy,
+        address SY,
         uint256 expiry
-    ) external returns (address pt, address yt) {
+    ) external returns (address PT, address YT) {
         (
             string memory ptName,
             string memory ptSymbol,
             string memory ytName,
             string memory ytSymbol
-        ) = _generatePtYtMetadata(sy);
+        ) = _generatePtYtMetadata(SY);
 
-        PrincipalToken PT = new PrincipalToken(sy, ptName, ptSymbol, expiry);
+        PT = address(new PrincipalToken(SY, ptName, ptSymbol, expiry));
+        YT = address(new YieldToken(SY, PT, ytName, ytSymbol, expiry));
 
-        YieldToken YT = new YieldToken(
-            sy,
-            address(PT),
-            ytName,
-            ytSymbol,
-            expiry
-        );
+        PrincipalToken(PT).initialize(YT);
 
-        PT.initialize(address(YT));
-
-        pt = address(PT);
-        yt = address(YT);
+        getPT[SY][expiry] = PT;
+        getYT[SY][expiry] = YT;
+        isPT[PT] = true;
+        isYT[YT] = true;
     }
 
     function setInterestFeeRate(

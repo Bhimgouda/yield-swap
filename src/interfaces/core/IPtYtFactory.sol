@@ -2,39 +2,24 @@
 pragma solidity 0.8.24;
 
 interface IPtYtFactory {
-    /*///////////////////////////////////////////////////////////////
-                            Events
-    //////////////////////////////////////////////////////////////*/
-    event PtYtCreated(
-        address indexed pt,
-        address indexed yt,
-        address indexed sy,
-        uint256 expiry
-    );
-    event InterestFeeRateUpdated(uint256 oldRate, uint256 newRate);
-    event TreasuryUpdated(
-        address indexed oldTreasury,
-        address indexed newTreasury
-    );
-
-    /*///////////////////////////////////////////////////////////////
-                            Functions
-    //////////////////////////////////////////////////////////////*/
     function createPtYt(
-        address sy,
+        address SY,
         uint256 expiry
-    ) external returns (address pt, address yt);
+    ) external returns (address PT, address YT);
 
     function setInterestFeeRate(uint256 newInterestFeeRate) external;
 
     function setTreasury(address newTreasury) external;
 
-    /*///////////////////////////////////////////////////////////////
-                            View Functions
-    //////////////////////////////////////////////////////////////*/
     function interestFeeRate() external view returns (uint256);
 
     function treasury() external view returns (address);
 
-    function owner() external view returns (address);
+    function getPT(address SY, uint256 expiry) external view returns (address);
+
+    function getYT(address SY, uint256 expiry) external view returns (address);
+
+    function isPT(address token) external view returns (bool);
+
+    function isYT(address token) external view returns (bool);
 }

@@ -16,20 +16,41 @@ interface IYT is IERC20Metadata {
 
     function syReserve() external view returns (uint256);
 
-    function stripSy(address receiver, uint256 amountSy) external returns (uint256 amountPt, uint256 amountYt);
+    function stripSy(
+        address receiver,
+        uint256 amountSy
+    ) external returns (uint256 amountPt, uint256 amountYt);
 
-    function redeemSy(address receiver, uint256 amountPt) external returns (uint256 amountSy);
+    function redeemSy(
+        address receiver,
+        uint256 amountPt
+    ) external returns (uint256 amountSy);
 
-    function redeemSyBeforeExpiry(address receiver, uint256 amountPt, uint256 amountYt)
-        external
-        returns (uint256 amountSy);
+    function redeemSyBeforeExpiry(
+        address receiver,
+        uint256 amountPt,
+        uint256 amountYt
+    ) external returns (uint256 amountSy);
+
+    function redeemDueInterest(
+        address user
+    ) external returns (uint256 interestOut);
 
     // These 3 are non-view by intention
-    function previewStripSy(uint256 amountSy) external returns (uint256 amountPt, uint256 amountYt);
+    function previewStripSy(
+        uint256 amountSy
+    ) external returns (uint256 amountPt, uint256 amountYt);
 
-    function previewRedeemSy(uint256 amountPt) external returns (uint256 amountSy);
+    function previewRedeemSy(
+        uint256 amountPt
+    ) external returns (uint256 amountSy);
 
-    function previewRedeemSyBeforeExpiry(uint256 amountPt, uint256 amountYt) external returns (uint256 amountSy);
+    function previewRedeemSyBeforeExpiry(
+        uint256 amountPt,
+        uint256 amountYt
+    ) external returns (uint256 amountSy);
 
-    function currentExchangeRate() external returns (uint256 _currentExchangeRate);
+    function currentExchangeRate()
+        external
+        returns (uint256 _currentExchangeRate);
 }

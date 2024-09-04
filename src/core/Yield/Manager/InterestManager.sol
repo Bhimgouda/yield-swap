@@ -3,6 +3,7 @@ pragma solidity 0.8.24;
 
 import {TokenHelper} from "../../libraries/TokenHelper.sol";
 import {PMath} from "../../libraries/math/PMath.sol";
+import {console} from "forge-std/console.sol";
 
 /**
  * @dev InterestIndex in this contract represents interest per share
@@ -62,19 +63,17 @@ abstract contract InterestManager is TokenHelper {
 
         uint256 userClaimedInterestIndex = s_userInterest[user].claimedIndex;
 
+        console.log(globalInterestIndex, "userInterst");
+
+        if (globalInterestIndex == userClaimedInterestIndex) return;
         if (userClaimedInterestIndex == 0) {
             s_userInterest[user].claimedIndex = globalInterestIndex;
-            return;
         }
 
-        if (globalInterestIndex != userClaimedInterestIndex) {
-            uint256 interestAccruedByUser = _ytBalanceOf(user).mulDown(
-                globalInterestIndex - userClaimedInterestIndex
-            );
-
-            s_userInterest[user].accrued = interestAccruedByUser;
-            s_userInterest[user].claimedIndex = globalInterestIndex;
-        }
+        s_userInterest[user].accrued = _ytBalanceOf(user).mulDown(
+            globalInterestIndex - userClaimedInterestIndex
+        );
+        s_userInterest[user].claimedIndex = globalInterestIndex;
     }
 
     function _updateGlobalInterestIndex()
@@ -86,8 +85,6 @@ abstract contract InterestManager is TokenHelper {
             uint256 interestAccrued = _collectInterest();
             globalInterestIndex = s_globalInterestIndex;
 
-            if (globalInterestIndex == 0)
-                globalInterestIndex = INITIAL_INTEREST_INDEX;
             if (totalShares != 0)
                 globalInterestIndex += interestAccrued.divDown(totalShares);
 

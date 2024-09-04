@@ -9,6 +9,7 @@ import {IPtYtFactory} from "../../interfaces/core/IPtYtFactory.sol";
 import {PMath} from "../libraries/math/PMath.sol";
 import {console} from "forge-std/console.sol";
 import {MERC20} from "../ModifiedERC20.sol";
+import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
 // Complies only to the GYGP model
 // Is Not expired
@@ -23,7 +24,7 @@ import {MERC20} from "../ModifiedERC20.sol";
  * @notice The Yield Token also serves as the Yield Stripping Pool
  * holding users underlying SY, minting PT's, managing accruedInterest and rewards
  */
-contract YieldToken is MERC20, InterestManager, RewardManager {
+contract YieldToken is ERC20, InterestManager, RewardManager {
     using PMath for uint256;
 
     address public immutable SY;
@@ -43,7 +44,7 @@ contract YieldToken is MERC20, InterestManager, RewardManager {
         string memory _name,
         string memory _symbol,
         uint256 _expiry
-    ) MERC20(_name, _symbol, 18) {
+    ) ERC20(_name, _symbol) {
         SY = _SY;
         PT = _PT;
         i_expiry = _expiry;
@@ -187,7 +188,12 @@ contract YieldToken is MERC20, InterestManager, RewardManager {
     {
         uint256 _prevExchangeRate = s_lastInterestCollectedExchangeRate;
         uint256 _currentExchangeRate = currentExchangeRate();
-        if (_currentExchangeRate != _prevExchangeRate) {
+
+        console.log(_prevExchangeRate);
+
+        if (
+            _prevExchangeRate != 0 && _currentExchangeRate != _prevExchangeRate
+        ) {
             uint256 principal = totalSupply();
 
             uint256 totalInterest = _calculateInterest(
@@ -206,9 +212,9 @@ contract YieldToken is MERC20, InterestManager, RewardManager {
 
             interestAccrued = totalInterest - interestFeeAmount;
             s_lastInterestCollectedExchangeRate = block.number;
-        } else {
-            interestAccrued = 0;
         }
+
+        s_lastInterestCollectedExchangeRate = _currentExchangeRate;
     }
 
     // Formula - Is a simplified version of (prinicpal * (1/prevPrice - 1/currentPrice))
@@ -233,13 +239,14 @@ contract YieldToken is MERC20, InterestManager, RewardManager {
         return balanceOf(user);
     }
 
-    function _beforeTokenTransfer(
-        address from,
-        address to,
-        uint256
-    ) internal override {
-        _updateAndDistributeInterestForTwo(from, to);
-    }
+    // Important need to add later
+    // function _beforeTokenTransfer(
+    //     address from,
+    //     address to,
+    //     uint256
+    // ) internal override {
+    //     _updateAndDistributeInterestForTwo(from, to);
+    // }
 
     /*///////////////////////////////////////////////////////////////
                             External View Functions
