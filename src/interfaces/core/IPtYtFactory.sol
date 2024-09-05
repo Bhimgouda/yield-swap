@@ -22,4 +22,6 @@ interface IPtYtFactory {
     function isPT(address token) external view returns (bool);
 
     function isYT(address token) external view returns (bool);
+
+    function owner() external view returns (address);
 }
