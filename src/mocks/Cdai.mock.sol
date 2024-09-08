@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
@@ -16,7 +16,9 @@ contract Cdai is ERC20("Compound DAI", "CDAI") {
 
     function mint(uint256 daiAmount) external returns (uint256 cdaiAmount) {
         if (totalSupply() > 0) {
-            cdaiAmount = (daiAmount * totalSupply()) / dai.balanceOf(address(this));
+            cdaiAmount =
+                (daiAmount * totalSupply()) /
+                dai.balanceOf(address(this));
         } else {
             cdaiAmount = daiAmount;
         }

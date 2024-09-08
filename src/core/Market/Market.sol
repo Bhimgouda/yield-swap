@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {LPToken} from "./LPToken.sol";
 import {MarketMath, MarketState} from "./MarketMath.sol";
@@ -27,9 +27,9 @@ contract Market is LPToken {
     ///////////////////////
     // IMMUTABLES
     ///////////////////////
-    ISY private immutable SY;
-    IPT private immutable PT;
-    IYT private immutable YT;
+    ISY public immutable SY;
+    IPT public immutable PT;
+    IYT public immutable YT;
 
     uint256 private immutable i_expiry;
     address private immutable i_factory;
@@ -156,5 +156,13 @@ contract Market is LPToken {
 
     function isExpired() public view returns (bool) {
         return block.timestamp >= i_expiry;
+    }
+
+    function expiry() external view returns (uint256) {
+        return i_expiry;
+    }
+
+    function factory() external view returns (address) {
+        return i_factory;
     }
 }

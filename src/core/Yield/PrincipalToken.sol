@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: SEE LICENSE IN LICENSE
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 
@@ -19,7 +19,12 @@ contract PrincipalToken is ERC20 {
         _;
     }
 
-    constructor(address _SY, string memory _name, string memory _symbol, uint256 _expiry) ERC20(_name, _symbol) {
+    constructor(
+        address _SY,
+        string memory _name,
+        string memory _symbol,
+        uint256 _expiry
+    ) ERC20(_name, _symbol) {
         SY = _SY;
         i_expiry = _expiry;
         i_factory = msg.sender;

@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {TestBase} from "../../helpers/TestBase.sol";
 import {console} from "forge-std/console.sol";
@@ -30,10 +30,10 @@ contract TestSYBase is TestBase {
 
     function setUp() external {
         DeploySYWstEth deploySYWstEth = new DeploySYWstEth();
-        (address SY, address _wstEth) = deploySYWstEth.run();
+        address SY = deploySYWstEth.run();
 
         sy = ISY(SY);
-        wstEth = _wstEth;
+        wstEth = ISY(SY).yieldToken();
     }
 
     /*///////////////////////////////////////////////////////////////

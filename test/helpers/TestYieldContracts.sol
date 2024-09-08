@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {TestBase} from "./TestBase.sol";
 import {console} from "forge-std/console.sol";
@@ -19,20 +19,16 @@ interface IYieldBearingToken {
 contract TestYieldContracts is TestBase {
     using PMath for uint256;
 
-    // For Deploying PtYtFactory
-    uint256 internal constant INTEREST_FEE_RATE = 1e17;
-    address internal immutable TREASURY = makeAddr("TREASURY");
-
     function _deploySYForTesting() internal returns (address) {
         // Deploy a SY Token for tests
         DeploySYWstEth deploySYWstEth = new DeploySYWstEth();
-        (address SY, ) = deploySYWstEth.run();
+        address SY = deploySYWstEth.run();
         return SY;
     }
 
     function _deployPtYtFactory() internal returns (address) {
         DeployPtYtFactory deployPtYtFactory = new DeployPtYtFactory();
-        return deployPtYtFactory.run(INTEREST_FEE_RATE, TREASURY);
+        return deployPtYtFactory.run();
     }
 
     function _createPtYt(
@@ -72,7 +68,7 @@ contract TestYieldContracts is TestBase {
         uint256 amountUnderlyingIncrease = amountUnderlying.mulDown(
             increaseAmount
         );
-        
+
         deal(
             underlyingToken,
             yieldBearingToken,

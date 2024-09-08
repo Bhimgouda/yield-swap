@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {TestYieldContracts} from "../../helpers/TestYieldContracts.sol";
 import {console} from "forge-std/console.sol";
@@ -32,7 +32,7 @@ contract TestPtYtFactory is TestYieldContracts {
         external
         prank(FACTORY_OWNER)
     {
-        uint256 newInterestFeeRate = INTEREST_FEE_RATE + 10;
+        uint256 newInterestFeeRate = 12e16;
         ptYtFactory.setInterestFeeRate(newInterestFeeRate);
         assertEq(ptYtFactory.interestFeeRate(), newInterestFeeRate);
     }
@@ -41,23 +41,5 @@ contract TestPtYtFactory is TestYieldContracts {
         address newTreasury = makeAddr("NEW TREASURY");
         ptYtFactory.setTreasury(newTreasury);
         assertEq(ptYtFactory.treasury(), newTreasury);
-    }
-
-    /*///////////////////////////////////////////////////////////////
-                    Tests for External-View Functions
-    //////////////////////////////////////////////////////////////*/
-
-    function testinterestFeeRate() external view {
-        uint256 interestFeeRate = ptYtFactory.interestFeeRate();
-        uint256 expectedInterestFeeRate = INTEREST_FEE_RATE;
-
-        assertEq(interestFeeRate, expectedInterestFeeRate);
-    }
-
-    function testtreasury() external view {
-        address treasury = ptYtFactory.treasury();
-        address expectedTreasury = TREASURY;
-
-        assertEq(treasury, expectedTreasury);
     }
 }

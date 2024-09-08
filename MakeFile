@@ -1,2 +1,35 @@
 -include .env
 
+# Compiler settings
+SOLC := solc
+SOLC_FLAGS := --optimize --optimize-runs 200
+
+# Project structure
+CONTRACTS_DIR := contracts
+BUILD_DIR := build
+
+# Main targets
+.PHONY: all clean compile test deploy run
+
+all: clean compile test
+
+clean:
+	rm -rf $(BUILD_DIR)
+
+compile:
+	mkdir -p $(BUILD_DIR)
+	$(SOLC) $(SOLC_FLAGS) $(CONTRACTS_DIR)/*.sol --bin --abi -o $(BUILD_DIR)
+
+test:
+	@echo "Add your test command here"
+
+deploy:
+	forge script ./script/Start.s.sol --rpc-url http://127.0.0.1:8545 --private-key $(PRIVATE_KEY) --broadcast
+
+run: deploy
+
+# Default target
+.DEFAULT_GOAL := compile
+
+all: compile test deploy
+

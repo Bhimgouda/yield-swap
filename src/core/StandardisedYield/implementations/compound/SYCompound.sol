@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {SYBase} from "../../SYBase.sol";
 import {ICdai} from "../../../../interfaces/core/ICdai.sol";
@@ -27,7 +27,11 @@ contract SYCompound is SYBase {
      * @param symbol SY Token symbol
      * @param cdai Corresponding Yield Bearing Token address
      */
-    constructor(string memory name, string memory symbol, address cdai) SYBase(name, symbol) {
+    constructor(
+        string memory name,
+        string memory symbol,
+        address cdai
+    ) SYBase(name, symbol) {
         i_cdai = cdai;
         underlying = ICdai(cdai).underlying();
         i_cdaiDecimals = IERC20Metadata(cdai).decimals();
@@ -37,18 +41,28 @@ contract SYCompound is SYBase {
      *
      * @param amountTokenToDeposit Amount of CDAI to wrap
      */
-    function _deposit(uint256 amountTokenToDeposit) internal view override returns (uint256 amountSharesOut) {
+    function _deposit(
+        uint256 amountTokenToDeposit
+    ) internal view override returns (uint256 amountSharesOut) {
         // This is a 1:1 SY token for GYGP yield-bearing Token
-        amountSharesOut = amountTokenToDeposit.standardize(i_cdaiDecimals, decimals());
+        amountSharesOut = amountTokenToDeposit.standardize(
+            i_cdaiDecimals,
+            decimals()
+        );
     }
 
     /**
      *
      * @param amountSharesToRedeem Amount of SY to unwrap
      */
-    function _redeem(uint256 amountSharesToRedeem) internal view override returns (uint256 amountTokenOut) {
+    function _redeem(
+        uint256 amountSharesToRedeem
+    ) internal view override returns (uint256 amountTokenOut) {
         // This is a 1:1 SY token for GYGP yield-bearing Token
-        amountTokenOut = amountSharesToRedeem.standardize(decimals(), i_cdaiDecimals);
+        amountTokenOut = amountSharesToRedeem.standardize(
+            decimals(),
+            i_cdaiDecimals
+        );
     }
 
     /**
@@ -65,24 +79,20 @@ contract SYCompound is SYBase {
                             PREVIEW RELATED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function previewDeposit(address tokenIn, uint256 amountTokenToDeposit)
-        external
-        view
-        override
-        returns (uint256 amountSharesOut)
-    {
+    function previewDeposit(
+        address tokenIn,
+        uint256 amountTokenToDeposit
+    ) external view override returns (uint256 amountSharesOut) {
         if (!isValidTokenIn(tokenIn)) {
             revert SYCompound__InvalidTokenIn(tokenIn);
         }
         amountSharesOut = _deposit(amountTokenToDeposit);
     }
 
-    function previewRedeem(address tokenOut, uint256 amountSharesToRedeem)
-        external
-        view
-        override
-        returns (uint256 amountTokenOut)
-    {
+    function previewRedeem(
+        address tokenOut,
+        uint256 amountSharesToRedeem
+    ) external view override returns (uint256 amountTokenOut) {
         require(isValidTokenOut(tokenOut), "Invalid TokenOut");
         amountTokenOut = _redeem(amountSharesToRedeem);
     }
@@ -95,12 +105,22 @@ contract SYCompound is SYBase {
         return i_cdai;
     }
 
-    function getTokensIn() external view override returns (address[] memory res) {
+    function getTokensIn()
+        external
+        view
+        override
+        returns (address[] memory res)
+    {
         res = new address[](1);
         res[0] = i_cdai;
     }
 
-    function getTokensOut() external view override returns (address[] memory res) {
+    function getTokensOut()
+        external
+        view
+        override
+        returns (address[] memory res)
+    {
         res = new address[](1);
         res[0] = i_cdai;
     }
@@ -109,7 +129,9 @@ contract SYCompound is SYBase {
         return token == i_cdai;
     }
 
-    function isValidTokenOut(address token) public view override returns (bool) {
+    function isValidTokenOut(
+        address token
+    ) public view override returns (bool) {
         return token == i_cdai;
     }
 
@@ -126,23 +148,42 @@ contract SYCompound is SYBase {
                         REWARD RELATED FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function claimRewards(address /* user */ ) external pure override returns (uint256[] memory rewardAmounts) {
+    function claimRewards(
+        address /* user */
+    ) external pure override returns (uint256[] memory rewardAmounts) {
         return new uint256[](0);
     }
 
-    function accruedRewards(address /* user */ ) external pure override returns (uint256[] memory rewardAmounts) {
+    function accruedRewards(
+        address /* user */
+    ) external pure override returns (uint256[] memory rewardAmounts) {
         return new uint256[](0);
     }
 
-    function rewardIndexesCurrent() external pure override returns (uint256[] memory indexes) {
+    function rewardIndexesCurrent()
+        external
+        pure
+        override
+        returns (uint256[] memory indexes)
+    {
         return new uint256[](0);
     }
 
-    function rewardIndexesStored() external pure override returns (uint256[] memory indexes) {
+    function rewardIndexesStored()
+        external
+        pure
+        override
+        returns (uint256[] memory indexes)
+    {
         return new uint256[](0);
     }
 
-    function getRewardTokens() external pure override returns (address[] memory) {
+    function getRewardTokens()
+        external
+        pure
+        override
+        returns (address[] memory)
+    {
         return new address[](0);
     }
 }

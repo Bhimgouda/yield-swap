@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {PrincipalToken} from "./PrincipalToken.sol";
 import {YieldToken} from "./YieldToken.sol";
@@ -8,7 +8,7 @@ import {StringLib} from "../libraries/StringLib.sol";
 import {console} from "forge-std/console.sol";
 import {Ownable} from "@openzeppelin/contracts/access/Ownable.sol";
 
-contract PtYtFactory is Ownable(msg.sender) {
+contract PtYtFactory is Ownable {
     using StringLib for string;
     using StringLib for StringLib.slice;
 
@@ -33,7 +33,7 @@ contract PtYtFactory is Ownable(msg.sender) {
     mapping(address => mapping(uint256 => address)) public getYT;
     mapping(address => bool) public isPT;
     mapping(address => bool) public isYT;
-
+ 
     modifier interestFeeRateInRange(uint256 _interestFeeRate) {
         require(
             MIN_INTEREST_FEE_RATE < _interestFeeRate &&

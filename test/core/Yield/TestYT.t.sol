@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {TestYieldContracts} from "../../helpers/TestYieldContracts.sol";
 import {console} from "forge-std/console.sol";
@@ -24,13 +24,19 @@ contract TestYT is TestYieldContracts {
     function setUp() external {
         sy = ISY(_deploySYForTesting());
 
-        (address PT, address YT, address _factory) = _createPtYt(address(sy), EXPIRY);
+        (address PT, address YT, address _factory) = _createPtYt(
+            address(sy),
+            EXPIRY
+        );
         factory = _factory;
         yt = IYT(YT);
         pt = IPT(PT);
     }
 
-    function testPreviewStripSy() public returns (uint256 amountPt, uint256 amountYt) {
+    function testPreviewStripSy()
+        public
+        returns (uint256 amountPt, uint256 amountYt)
+    {
         (amountPt, amountYt) = yt.previewStripSy(AMOUNT_SY);
         uint256 expectedAmountPt = AMOUNT_SY.mulDown(sy.exchangeRate());
 
@@ -39,7 +45,7 @@ contract TestYT is TestYieldContracts {
     }
 
     function testPreviewRedeemSy() external {
-        (uint256 amountPt,) = testPreviewStripSy();
+        (uint256 amountPt, ) = testPreviewStripSy();
 
         uint256 amountSy = yt.previewRedeemSy(amountPt);
         uint256 expectedAmountSy = AMOUNT_SY;
@@ -68,7 +74,11 @@ contract TestYT is TestYieldContracts {
         uint256 updatedSyReserve = yt.syReserve();
 
         assertEq(endSYBalanceOfYT - startSyBalanceOfYt, AMOUNT_SY);
-        assertEq(endSYBalanceOfYT, updatedSyReserve, "Failed to updated internal syReserve");
+        assertEq(
+            endSYBalanceOfYT,
+            updatedSyReserve,
+            "Failed to updated internal syReserve"
+        );
     }
 
     function testStripSyMintsPtYtForUser() external prank(USER) {
@@ -84,7 +94,8 @@ contract TestYT is TestYieldContracts {
         uint256 endPtTotalSupply = pt.totalSupply();
         uint256 endYtTotalSupply = yt.totalSupply();
 
-        (uint256 expectedAmountPt, uint256 expectedAmountYt) = yt.previewStripSy(AMOUNT_SY);
+        (uint256 expectedAmountPt, uint256 expectedAmountYt) = yt
+            .previewStripSy(AMOUNT_SY);
 
         assertEq(endPtBalanceOfUser - startPtBalanceOfUser, expectedAmountPt);
         assertEq(endYtBalanceOfUser - startYtBalanceOfUser, expectedAmountYt);
@@ -101,7 +112,7 @@ contract TestYT is TestYieldContracts {
 
     function testRedeemSyTransfersSyToUser() external prank(USER) {
         // Arrange
-        (uint256 amountPt,) = _stripSy(USER, AMOUNT_SY);
+        (uint256 amountPt, ) = _stripSy(USER, AMOUNT_SY);
         _afterExpiry();
 
         uint256 startSyBalanceOfYt = sy.balanceOf(address(yt));
@@ -117,12 +128,16 @@ contract TestYT is TestYieldContracts {
 
         assertEq(startSyBalanceOfYt - endSyBalanceOfYt, AMOUNT_SY);
         assertEq(endSyBalanceOfUser - startSyBalanceOfUser, AMOUNT_SY);
-        assertEq(endSyBalanceOfYt, updatedSyReserve, "Failed to updated internal syReserve");
+        assertEq(
+            endSyBalanceOfYt,
+            updatedSyReserve,
+            "Failed to updated internal syReserve"
+        );
     }
 
     function testRedeemSyBurnsPtYtOfUser() external prank(USER) {
         // Arrange
-        (uint256 amountPt,) = _stripSy(USER, AMOUNT_SY);
+        (uint256 amountPt, ) = _stripSy(USER, AMOUNT_SY);
         _afterExpiry();
 
         uint256 startPtBalanceOfUser = pt.balanceOf(USER);
@@ -153,14 +168,19 @@ contract TestYT is TestYieldContracts {
         yt.redeemSyBeforeExpiry(USER, amountPt, amountYt);
 
         uint256 endSyBalanceOfUser = sy.balanceOf(USER);
-        uint256 expectedEndSyBalanceOfUser = amountYt.divDown(sy.exchangeRate());
+        uint256 expectedEndSyBalanceOfUser = amountYt.divDown(
+            sy.exchangeRate()
+        );
 
-        assertEq(endSyBalanceOfUser - startSyBalanceOfUser, expectedEndSyBalanceOfUser);
+        assertEq(
+            endSyBalanceOfUser - startSyBalanceOfUser,
+            expectedEndSyBalanceOfUser
+        );
     }
 
     function testRedeemSyRevertsIfNotExpired() external prank(USER) {
         // Arrange
-        (uint256 amountPt,) = _stripSy(USER, AMOUNT_SY);
+        (uint256 amountPt, ) = _stripSy(USER, AMOUNT_SY);
 
         vm.expectRevert();
         yt.redeemSy(USER, amountPt);
@@ -175,7 +195,10 @@ contract TestYT is TestYieldContracts {
         yt.redeemSyBeforeExpiry(USER, amountPt, amountYt);
     }
 
-    function _stripSy(address user, uint256 amountSy) internal returns (uint256 amountPt, uint256 amountYt) {
+    function _stripSy(
+        address user,
+        uint256 amountSy
+    ) internal returns (uint256 amountPt, uint256 amountYt) {
         _mintSYForUser(sy, user, amountSy);
         sy.approve(address(yt), amountSy);
         (amountPt, amountYt) = yt.stripSy(user, amountSy);

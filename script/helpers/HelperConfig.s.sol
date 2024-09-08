@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.24;
+pragma solidity 0.8.19;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
@@ -22,10 +22,10 @@ contract HelperConfig is Script {
     uint256 private LOCAL = 31337;
 
     struct NetworkConfig {
-        address[2] yieldBearingTokens;
+        address[] yieldBearingTokens;
     }
 
-    function getConfig() external returns (NetworkConfig memory networkConfig) {
+    function run() external returns (NetworkConfig memory networkConfig) {
         if (block.chainid == MAINNET_FORK_CHAIN_ID) {
             networkConfig = getMainnetForkConfig();
         } else if (block.chainid == SEPOLIA_CHAIN_ID) {
@@ -39,20 +39,28 @@ contract HelperConfig is Script {
 
     function getSepoliaConfig() internal pure returns (NetworkConfig memory) {}
 
-    function getEthMainnetConfig() internal pure returns (NetworkConfig memory) {}
+    function getEthMainnetConfig()
+        internal
+        pure
+        returns (NetworkConfig memory)
+    {}
 
     /*///////////////////////////////////////////////////////////////
                             LOCAL CONFIG
     //////////////////////////////////////////////////////////////*/
 
     function getLocalConfig() internal returns (NetworkConfig memory) {
-        address[2] memory yieldBearingTokens;
+        address[] memory yieldBearingTokens = new address[](2);
+
+        vm.startBroadcast();
 
         StEth stEth = new StEth();
         WstEth wstEth = new WstEth(address(stEth));
 
         DAI dai = new DAI();
         Cdai cdai = new Cdai(address(dai));
+
+        vm.stopBroadcast();
 
         yieldBearingTokens[0] = address(cdai);
         yieldBearingTokens[1] = address(wstEth);
@@ -64,8 +72,12 @@ contract HelperConfig is Script {
                             FORK CONFIG
     //////////////////////////////////////////////////////////////*/
 
-    function getMainnetForkConfig() internal pure returns (NetworkConfig memory) {
-        address[2] memory yieldBearingTokens;
+    function getMainnetForkConfig()
+        internal
+        pure
+        returns (NetworkConfig memory)
+    {
+        address[] memory yieldBearingTokens = new address[](2);
         yieldBearingTokens[0] = 0x5d3a536E4D6DbD6114cc1Ead35777bAB948E3643;
         yieldBearingTokens[1] = 0x7f39C581F595B53c5cb19bD0b3f8dA6c935E2Ca0;
 
