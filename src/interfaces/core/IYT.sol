@@ -50,7 +50,7 @@ interface IYT is IERC20Metadata {
         uint256 amountYt
     ) external returns (uint256 amountSy);
 
-    function currentExchangeRate()
+    function currentSyExchangeRate()
         external
-        returns (uint256 _currentExchangeRate);
+        returns (uint256 _currentSyExchangeRate);
 }

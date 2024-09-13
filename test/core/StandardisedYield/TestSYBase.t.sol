@@ -40,22 +40,22 @@ contract TestSYBase is TestBase {
                             SYBASE FUNCTIONS
     //////////////////////////////////////////////////////////////*/
 
-    function testDeposit() external prankUser {
-        _mintWstEthForUser(wstEth, USER, AMOUNT_WSTETH_DEPOSIT);
+    function testDeposit() external prank(USER_0) {
+        _mintWstEthForUser(wstEth, USER_0, AMOUNT_WSTETH_DEPOSIT);
 
         // Arrange
-        uint256 userWstEthStartBal = IERC20(wstEth).balanceOf(USER);
-        uint256 userSYStartBal = sy.balanceOf(USER);
+        uint256 userWstEthStartBal = IERC20(wstEth).balanceOf(USER_0);
+        uint256 userSYStartBal = sy.balanceOf(USER_0);
         uint256 syWstEthStartBal = IERC20(wstEth).balanceOf(address(sy));
         uint256 syStartTotalSupply = sy.totalSupply();
 
         // Act
         IERC20(wstEth).approve(address(sy), AMOUNT_WSTETH_DEPOSIT);
-        sy.deposit(USER, wstEth, AMOUNT_WSTETH_DEPOSIT, AMOUNT_SY_MINT);
+        sy.deposit(USER_0, wstEth, AMOUNT_WSTETH_DEPOSIT, AMOUNT_SY_MINT);
 
         // Assert
-        uint256 userWstEthEndBal = IERC20(wstEth).balanceOf(USER);
-        uint256 userSYEndBal = sy.balanceOf(USER);
+        uint256 userWstEthEndBal = IERC20(wstEth).balanceOf(USER_0);
+        uint256 userSYEndBal = sy.balanceOf(USER_0);
         uint256 syWstEthEndBal = IERC20(wstEth).balanceOf(address(sy));
         uint256 syEndTotalSupply = sy.totalSupply();
 
@@ -65,21 +65,21 @@ contract TestSYBase is TestBase {
         assertEq(syEndTotalSupply - syStartTotalSupply, AMOUNT_SY_MINT);
     }
 
-    function testRedeem() external prankUser {
+    function testRedeem() external prank(USER_0) {
         _deposit();
 
         // Arrange
-        uint256 userWstEthStartBal = IERC20(wstEth).balanceOf(USER);
-        uint256 userSYStartBal = sy.balanceOf(USER);
+        uint256 userWstEthStartBal = IERC20(wstEth).balanceOf(USER_0);
+        uint256 userSYStartBal = sy.balanceOf(USER_0);
         uint256 syWstEthStartBal = IERC20(wstEth).balanceOf(address(sy));
         uint256 syStartTotalSupply = sy.totalSupply();
 
         // Act
-        sy.redeem(USER, AMOUNT_SY_BURN, wstEth, AMOUNT_WSTETH_REDEEM, false);
+        sy.redeem(USER_0, AMOUNT_SY_BURN, wstEth, AMOUNT_WSTETH_REDEEM, false);
 
         // Assert
-        uint256 userWstEthEndBal = IERC20(wstEth).balanceOf(USER);
-        uint256 userSYEndBal = sy.balanceOf(USER);
+        uint256 userWstEthEndBal = IERC20(wstEth).balanceOf(USER_0);
+        uint256 userSYEndBal = sy.balanceOf(USER_0);
         uint256 syWstEthEndBal = IERC20(wstEth).balanceOf(address(sy));
         uint256 syEndTotalSupply = sy.totalSupply();
 
@@ -90,8 +90,8 @@ contract TestSYBase is TestBase {
     }
 
     function _deposit() internal {
-        _mintWstEthForUser(wstEth, USER, AMOUNT_WSTETH_DEPOSIT);
+        _mintWstEthForUser(wstEth, USER_0, AMOUNT_WSTETH_DEPOSIT);
         IERC20(wstEth).approve(address(sy), AMOUNT_WSTETH_DEPOSIT);
-        sy.deposit(USER, wstEth, AMOUNT_WSTETH_DEPOSIT, AMOUNT_SY_MINT);
+        sy.deposit(USER_0, wstEth, AMOUNT_WSTETH_DEPOSIT, AMOUNT_SY_MINT);
     }
 }

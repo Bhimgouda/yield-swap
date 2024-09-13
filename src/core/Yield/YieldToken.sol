@@ -33,7 +33,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     uint256 private immutable i_expiry;
 
     // Used to store the non-decreasing form of SY.exchangeRate()
-    uint256 private s_storedExchangeRate;
+    uint256 private s_storedSyExchangeRate;
 
     // Interest Related
     uint256 private s_lastInterestCollectedExchangeRate;
@@ -135,16 +135,16 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     // IMPORTANT - Need more Clarity
     // The SY exchange rate should be non-decreaing
     // which is why we have stored an internal exchange rate for comparision
-    function currentExchangeRate()
+    function currentSyExchangeRate()
         public
-        returns (uint256 _currentExchangeRate)
+        returns (uint256 _currentSyExchangeRate)
     {
-        _currentExchangeRate = PMath.max(
+        _currentSyExchangeRate = PMath.max(
             ISY(SY).exchangeRate(),
-            s_storedExchangeRate
+            s_storedSyExchangeRate
         );
 
-        s_storedExchangeRate = _currentExchangeRate;
+        s_storedSyExchangeRate = _currentSyExchangeRate;
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -157,7 +157,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     ) public returns (uint256 amountPt, uint256 amountYt) {
         // Formula
         // amountPtorYt = amountSy*exchangeRate (in terms of accounting asset)
-        amountYt = amountSy.mulDown(currentExchangeRate());
+        amountYt = amountSy.mulDown(currentSyExchangeRate());
         amountPt = amountYt;
     }
 
@@ -166,7 +166,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     ) public returns (uint256 amountSy) {
         // Formula
         // amountSy = amountPt/exchangeRate (in terms of accounting asset)
-        amountSy = amountPt.divDown(currentExchangeRate());
+        amountSy = amountPt.divDown(currentSyExchangeRate());
     }
 
     function previewRedeemSyBeforeExpiry(
@@ -186,20 +186,21 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         override
         returns (uint256 interestAccrued)
     {
-        uint256 _prevExchangeRate = s_lastInterestCollectedExchangeRate;
-        uint256 _currentExchangeRate = currentExchangeRate();
+        uint256 _prevSyExchangeRate = s_lastInterestCollectedExchangeRate;
+        uint256 _currentSyExchangeRate = currentSyExchangeRate();
 
-        console.log(_prevExchangeRate);
+        console.log(_prevSyExchangeRate);
 
         if (
-            _prevExchangeRate != 0 && _currentExchangeRate != _prevExchangeRate
+            _prevSyExchangeRate != 0 &&
+            _currentSyExchangeRate != _prevSyExchangeRate
         ) {
             uint256 principal = totalSupply();
 
             uint256 totalInterest = _calculateInterest(
                 principal,
-                _prevExchangeRate,
-                _currentExchangeRate
+                _prevSyExchangeRate,
+                _currentSyExchangeRate
             );
 
             // Interst Fee deductions after expiry all the interest goes to treasury
@@ -214,18 +215,18 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
             s_lastInterestCollectedExchangeRate = block.number;
         }
 
-        s_lastInterestCollectedExchangeRate = _currentExchangeRate;
+        s_lastInterestCollectedExchangeRate = _currentSyExchangeRate;
     }
 
     // Formula - Is a simplified version of (prinicpal * (1/prevPrice - 1/currentPrice))
     function _calculateInterest(
         uint256 principal,
-        uint256 _prevExchangeRate,
-        uint256 _currentExchangeRate
+        uint256 _prevSyExchangeRate,
+        uint256 _currentSyExchangeRate
     ) internal pure returns (uint256) {
         return
-            (principal * (_currentExchangeRate - _prevExchangeRate)).divDown(
-                _prevExchangeRate * _currentExchangeRate
+            (principal * (_currentSyExchangeRate - _prevSyExchangeRate)).divDown(
+                _prevSyExchangeRate * _currentSyExchangeRate
             );
     }
 
@@ -239,14 +240,13 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         return balanceOf(user);
     }
 
-    // Important need to add later
-    // function _beforeTokenTransfer(
-    //     address from,
-    //     address to,
-    //     uint256
-    // ) internal override {
-    //     _updateAndDistributeInterestForTwo(from, to);
-    // }
+    function _beforeTokenTransfer(
+        address from,
+        address to,
+        uint256
+    ) internal override {
+        _updateAndDistributeInterestForTwo(from, to);
+    }
 
     /*///////////////////////////////////////////////////////////////
                             External View Functions

@@ -16,16 +16,15 @@ contract RouterYT {
         address tokenIn,
         uint256 amountToken
     ) external returns (uint256 amountPt, uint256 amountYt) {
-        address reciever = msg.sender;
         address self = address(this);
 
         // Tranfer Token In & Approve
-        IERC20(tokenIn).transferFrom(reciever, self, amountToken);
+        IERC20(tokenIn).transferFrom(msg.sender, self, amountToken);
         IERC20(tokenIn).approve(SY, amountToken);
         uint256 amountSy = ISY(SY).deposit(self, tokenIn, amountToken, 0); // Need to check 0 later
 
         IERC20(SY).approve(YT, amountSy);
-        (amountPt, amountYt) = IYT(YT).stripSy(reciever, amountSy);
+        (amountPt, amountYt) = IYT(YT).stripSy(msg.sender, amountSy);
     }
 
     /**

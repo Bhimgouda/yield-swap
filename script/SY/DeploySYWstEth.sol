@@ -14,6 +14,8 @@ contract DeploySYWstEth is Script {
         HelperConfig helperConfig = new HelperConfig();
         address yieldBearingToken = helperConfig.run().yieldBearingTokens[1];
 
+        console.log(block.chainid, yieldBearingToken);
+
         vm.startBroadcast();
         SY = address(
             new SYWstEth("SY Lido wstETH", "SY-wstETH", yieldBearingToken)

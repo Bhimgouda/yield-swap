@@ -2,6 +2,9 @@
 cache/
 out/
 
+MarketTests/
+
+
 # Ignores development broadcast logs
 !/broadcast
 /broadcast/*/31337/
@@ -14,3 +17,6 @@ Later.doc
 # Dotenv file
 .env
 .github/workflows/test.yml
+script/Start.s.sol
+
+script/demo/Start.s.sol

@@ -31,7 +31,7 @@ abstract contract SYBase is ERC20, ISY {
 
         // Calculate Shares out
         amountSharesOut = _deposit(amountTokenToDeposit);
-        require(minSharesOut >= amountSharesOut, "Insufficient Shares out");
+        require(amountSharesOut >= minSharesOut, "Insufficient Shares out");
 
         // Mint shares
         _mint(receiver, amountSharesOut);
@@ -57,7 +57,7 @@ abstract contract SYBase is ERC20, ISY {
 
         // Calc Amount Out
         amountTokenOut = _redeem(amountSharesToRedeem);
-        require(minTokenOut >= amountTokenOut, "Insufficient Amount Out");
+        require(amountTokenOut >= minTokenOut, "Insufficient Amount Out");
 
         // Transfer Token Out
         IERC20(tokenOut).transfer(receiver, amountTokenOut);

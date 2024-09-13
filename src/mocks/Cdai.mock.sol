@@ -6,56 +6,53 @@ import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {PMath} from "../../lib/PMath.sol";
 
 contract Cdai is ERC20("Compound DAI", "CDAI") {
-    IERC20 public dai;
-
     using PMath for uint256;
 
+    address public immutable i_dai;
+    uint256 private s_daiBalance;
+
     constructor(address _dai) {
-        dai = IERC20(_dai);
+        i_dai = _dai;
     }
 
     function mint(uint256 daiAmount) external returns (uint256 cdaiAmount) {
         if (totalSupply() > 0) {
-            cdaiAmount =
-                (daiAmount * totalSupply()) /
-                dai.balanceOf(address(this));
+            cdaiAmount = (daiAmount * totalSupply()) / s_daiBalance;
         } else {
             cdaiAmount = daiAmount;
         }
 
-        bool success = dai.transferFrom(msg.sender, address(this), daiAmount);
-        require(success, "Token transfer failed");
+        s_daiBalance += daiAmount;
         _mint(msg.sender, cdaiAmount);
     }
 
     function redeem(uint256 cdaiAmount) external returns (uint256 daiAmount) {
-        daiAmount = (dai.balanceOf(address(this)) * cdaiAmount) / totalSupply();
+        daiAmount = (s_daiBalance) / totalSupply();
+
+        s_daiBalance -= daiAmount;
         _burn(msg.sender, cdaiAmount);
-        dai.transfer(msg.sender, daiAmount);
     }
 
+    // Scaled by 1e18 similar to cDai
     function exchangeRateStored() external view returns (uint256) {
         if (totalSupply() > 0) {
-            return dai.balanceOf(address(this)).divDown(totalSupply());
+            return (s_daiBalance * 1e28) / totalSupply();
         } else {
-            return 1e18;
+            return 1e8 * 1e18;
         }
     }
 
-    /**
-     *
-     * @param daiAmount Amount dai to add to the pool
-     * @dev This is just a mock function that would stimulate an increase in the exchange rate of wstEth
-     */
-    function addInterest(uint256 daiAmount) external {
-        dai.transferFrom(msg.sender, address(this), daiAmount);
+    function addInterest() external {
+        if (totalSupply() > 0) {
+            s_daiBalance += (totalSupply() * 5) / 100; // equivalent to adding 5% interest
+        }
     }
 
     function underlying() external view returns (address) {
-        return address(dai);
+        return address(i_dai);
     }
 
-    function decimals() public view override returns (uint8) {
+    function decimals() public pure override returns (uint8) {
         return 8;
     }
 }

@@ -56,7 +56,7 @@ contract SYWstEth is SYBase {
     }
 
     /**
-     * @dev Provides the exchange rate of the Yield bearing token against it's underlying asset
+     * @dev Provides the exchange rate of the Yield bearing token against it's underlying asset / Accounting asset
      * @notice Increase in exhange rate == Interest accrued by the Yield bearing token.
      *
      * @dev The wstEth exchange rate had 8 decimals (alike the token decimals). Plus has been scaled by 1e18

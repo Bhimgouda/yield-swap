@@ -29,20 +29,20 @@ contract TestYTInterestManager is TestYieldContracts {
         yt = IYT(YT);
     }
 
-    function testIsUserAbleToRedeemDueInterest() public prank(USER) {
+    function testIsUserAbleToRedeemDueInterest() public prank(USER_0) {
         // Arrange
-        // _stripSy(USER, AMOUNT_SY);
+        // _stripSy(USER_0, AMOUNT_SY);
         // uint256 prevExchangeRate = sy.exchangeRate();
         // _increaseExchangeRate(address(sy), EXCHANGE_RATE_INCREASE);
-        // uint256 currentExchangeRate = sy.exchangeRate();
-        // uint256 userStartingSyBalance = sy.balanceOf(USER);
+        // uint256 currentSyExchangeRate = sy.exchangeRate();
+        // uint256 userStartingSyBalance = sy.balanceOf(USER_0);
         // // Act
-        // yt.redeemDueInterest(USER);
-        // uint256 userEndingSyBalance = sy.balanceOf(USER);
+        // yt.redeemDueInterest(USER_0);
+        // uint256 userEndingSyBalance = sy.balanceOf(USER_0);
         // uint256 expectedInterest = _calcInterestWithFee(
-        //     USER,
+        //     USER_0,
         //     prevExchangeRate,
-        //     currentExchangeRate
+        //     currentSyExchangeRate
         // );
         // // console.log(userEndingSyBalance, expectedInterest);
         // assertEq(userEndingSyBalance - userStartingSyBalance, expectedInterest);
@@ -64,7 +64,7 @@ contract TestYTInterestManager is TestYieldContracts {
         // }
         // uint256 prevExchangeRate = sy.exchangeRate();
         // _increaseExchangeRate(address(sy), EXCHANGE_RATE_INCREASE);
-        // uint256 currentExchangeRate = sy.exchangeRate();
+        // uint256 currentSyExchangeRate = sy.exchangeRate();
         // for (uint256 i; i < users.length; ++i) {
         //     address user = makeAddr(users[i]);
         //     uint256 userStartingSyBalance = sy.balanceOf(user);
@@ -75,7 +75,7 @@ contract TestYTInterestManager is TestYieldContracts {
         //     uint256 expectedInterest = _calcInterestWithFee(
         //         user,
         //         prevExchangeRate,
-        //         currentExchangeRate
+        //         currentSyExchangeRate
         //     );
         //     assertEq(
         //         userEndingSyBalance - userStartingSyBalance,
@@ -96,12 +96,12 @@ contract TestYTInterestManager is TestYieldContracts {
     function _calcInterestWithFee(
         address user,
         uint256 prevExchangeRate,
-        uint256 currentExchangeRate
+        uint256 currentSyExchangeRate
     ) internal view returns (uint256) {
         uint256 interestAmount = _calcInterest(
             yt.totalSupply(),
             prevExchangeRate,
-            currentExchangeRate
+            currentSyExchangeRate
         );
         uint256 interestFeeRate = IPtYtFactory(factory).interestFeeRate();
         uint256 interestFee = interestAmount.mulDown(interestFeeRate);
@@ -115,13 +115,12 @@ contract TestYTInterestManager is TestYieldContracts {
     function _calcInterest(
         uint256 principal,
         uint256 prevExchangeRate,
-        uint256 currentExchangeRate
+        uint256 currentSyExchangeRate
     ) internal pure returns (uint256) {
         // Formula used - (principal * (current - prev))/current*prev
         return
-            (principal.mulDown(currentExchangeRate - prevExchangeRate)).divDown(
-                currentExchangeRate.mulDown(prevExchangeRate)
-            );
+            (principal.mulDown(currentSyExchangeRate - prevExchangeRate))
+                .divDown(currentSyExchangeRate.mulDown(prevExchangeRate));
     }
 
     function _afterExpiry() internal {

@@ -63,8 +63,6 @@ abstract contract InterestManager is TokenHelper {
 
         uint256 userClaimedInterestIndex = s_userInterest[user].claimedIndex;
 
-        console.log(globalInterestIndex, "userInterst");
-
         if (globalInterestIndex == userClaimedInterestIndex) return;
         if (userClaimedInterestIndex == 0) {
             s_userInterest[user].claimedIndex = globalInterestIndex;
