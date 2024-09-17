@@ -3,10 +3,10 @@ pragma solidity ^0.8.19;
 
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 
-interface IWstEth is IERC20Metadata {
-    function stETH() external view returns (address);
+interface IAUsdcToken is IERC20Metadata {
+    function usdc() external view returns (address);
 
-    function getStETHByWstETH(
-        uint256 _wstETHAmount
+    function getUsdcByAUsdc(
+        uint256 _aUsdcAmount
     ) external view returns (uint256);
 }

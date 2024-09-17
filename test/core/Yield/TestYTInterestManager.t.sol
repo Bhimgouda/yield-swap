@@ -1,44 +1,27 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {TestYieldContracts} from "../../helpers/TestYieldContracts.sol";
+import {TestYield} from "../../helpers/TestYield.sol";
 import {console} from "forge-std/console.sol";
 import {PMath} from "../../../lib/PMath.sol";
 
-import {ISY} from "../../../src/interfaces/core/ISY.sol";
-import {IYT} from "../../../src/interfaces/core/IYT.sol";
-import {IPtYtFactory} from "../../../src/interfaces/core/IPtYtFactory.sol";
-
-contract TestYTInterestManager is TestYieldContracts {
+contract TestYTInterestManager is TestYield {
     using PMath for uint256;
 
-    address private factory;
-
-    ISY private sy;
-    IYT private yt;
-
-    uint256 private immutable EXPIRY = block.timestamp + (10 * DAY);
-    uint256 private constant AMOUNT_SY = 1e18;
-    uint256 private constant EXCHANGE_RATE_INCREASE = 20000000000000000;
-
     function setUp() external {
-        sy = ISY(_deploySYForTesting());
-
-        (, address YT, address _factory) = _createPtYt(address(sy), EXPIRY);
-        factory = _factory;
-        yt = IYT(YT);
+        _yieldTestSetup();
     }
 
     function testIsUserAbleToRedeemDueInterest() public prank(USER_0) {
         // Arrange
         // _stripSy(USER_0, AMOUNT_SY);
-        // uint256 prevExchangeRate = sy.exchangeRate();
-        // _increaseExchangeRate(address(sy), EXCHANGE_RATE_INCREASE);
-        // uint256 currentSyExchangeRate = sy.exchangeRate();
-        // uint256 userStartingSyBalance = sy.balanceOf(USER_0);
+        // uint256 prevExchangeRate = SY.exchangeRate();
+        // _increaseExchangeRate(address(SY), EXCHANGE_RATE_INCREASE);
+        // uint256 currentSyExchangeRate = SY.exchangeRate();
+        // uint256 userStartingSyBalance = SY.balanceOf(USER_0);
         // // Act
-        // yt.redeemDueInterest(USER_0);
-        // uint256 userEndingSyBalance = sy.balanceOf(USER_0);
+        // YT.redeemDueInterest(USER_0);
+        // uint256 userEndingSyBalance = SY.balanceOf(USER_0);
         // uint256 expectedInterest = _calcInterestWithFee(
         //     USER_0,
         //     prevExchangeRate,
@@ -62,16 +45,16 @@ contract TestYTInterestManager is TestYieldContracts {
         //     _stripSy(user, (i + 1) * AMOUNT_SY);
         //     vm.stopPrank();
         // }
-        // uint256 prevExchangeRate = sy.exchangeRate();
-        // _increaseExchangeRate(address(sy), EXCHANGE_RATE_INCREASE);
-        // uint256 currentSyExchangeRate = sy.exchangeRate();
+        // uint256 prevExchangeRate = SY.exchangeRate();
+        // _increaseExchangeRate(address(SY), EXCHANGE_RATE_INCREASE);
+        // uint256 currentSyExchangeRate = SY.exchangeRate();
         // for (uint256 i; i < users.length; ++i) {
         //     address user = makeAddr(users[i]);
-        //     uint256 userStartingSyBalance = sy.balanceOf(user);
+        //     uint256 userStartingSyBalance = SY.balanceOf(user);
         //     vm.startPrank(user);
-        //     yt.redeemDueInterest(user);
+        //     YT.redeemDueInterest(user);
         //     vm.stopPrank();
-        //     uint256 userEndingSyBalance = sy.balanceOf(user);
+        //     uint256 userEndingSyBalance = SY.balanceOf(user);
         //     uint256 expectedInterest = _calcInterestWithFee(
         //         user,
         //         prevExchangeRate,
@@ -88,9 +71,9 @@ contract TestYTInterestManager is TestYieldContracts {
         address user,
         uint256 amountSy
     ) internal returns (uint256 amountPt, uint256 amountYt) {
-        _mintSYForUser(sy, user, amountSy);
-        sy.approve(address(yt), amountSy);
-        (amountPt, amountYt) = yt.stripSy(user, amountSy);
+        _mintSYForUser(address(SY), USER_0, amountSy);
+        SY.approve(address(YT), amountSy);
+        (amountPt, amountYt) = YT.stripSy(user, amountSy);
     }
 
     function _calcInterestWithFee(
@@ -99,16 +82,16 @@ contract TestYTInterestManager is TestYieldContracts {
         uint256 currentSyExchangeRate
     ) internal view returns (uint256) {
         uint256 interestAmount = _calcInterest(
-            yt.totalSupply(),
+            YT.totalSupply(),
             prevExchangeRate,
             currentSyExchangeRate
         );
-        uint256 interestFeeRate = IPtYtFactory(factory).interestFeeRate();
+        uint256 interestFeeRate = ptYtFactory.interestFeeRate();
         uint256 interestFee = interestAmount.mulDown(interestFeeRate);
 
         return
-            yt.balanceOf(user).mulDown(
-                (interestAmount - interestFee).divDown(yt.totalSupply())
+            YT.balanceOf(user).mulDown(
+                (interestAmount - interestFee).divDown(YT.totalSupply())
             );
     }
 
@@ -124,6 +107,6 @@ contract TestYTInterestManager is TestYieldContracts {
     }
 
     function _afterExpiry() internal {
-        vm.warp(EXPIRY);
+        vm.warp(EXPIRY_DURATION);
     }
 }

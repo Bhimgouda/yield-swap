@@ -189,8 +189,6 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         uint256 _prevSyExchangeRate = s_lastInterestCollectedExchangeRate;
         uint256 _currentSyExchangeRate = currentSyExchangeRate();
 
-        console.log(_prevSyExchangeRate);
-
         if (
             _prevSyExchangeRate != 0 &&
             _currentSyExchangeRate != _prevSyExchangeRate
@@ -212,7 +210,7 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
             _transferOut(SY, treaury, interestFeeAmount);
 
             interestAccrued = totalInterest - interestFeeAmount;
-            s_lastInterestCollectedExchangeRate = block.number;
+            s_lastInterestCollectedExchangeRate = _currentSyExchangeRate;
         }
 
         s_lastInterestCollectedExchangeRate = _currentSyExchangeRate;
@@ -225,9 +223,8 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         uint256 _currentSyExchangeRate
     ) internal pure returns (uint256) {
         return
-            (principal * (_currentSyExchangeRate - _prevSyExchangeRate)).divDown(
-                _prevSyExchangeRate * _currentSyExchangeRate
-            );
+            (principal * (_currentSyExchangeRate - _prevSyExchangeRate))
+                .divDown(_prevSyExchangeRate * _currentSyExchangeRate);
     }
 
     function _ytSupply() internal view override returns (uint256) {

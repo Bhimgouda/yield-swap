@@ -3,14 +3,14 @@ pragma solidity 0.8.19;
 
 import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
-import {RouterYT} from "../src/router/RouterYT.sol";
+import {YTRouter} from "../src/router/YTRouter.sol";
 
-contract DeployRouterYt is Script {
+contract DeployYTRouter is Script {
     function run() external returns (address) {
         vm.startBroadcast();
-        RouterYT routerYT = new RouterYT();
+        YTRouter ytRouter = new YTRouter();
         vm.stopBroadcast();
 
-        return address(routerYT);
+        return address(ytRouter);
     }
 }

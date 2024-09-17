@@ -15,19 +15,30 @@ struct MarketState {
     uint256 totalPt;
     uint256 totalLp;
     uint256 lastLnImpliedRate;
-    /// immutable variables ///
-    int256 scalarRoot;
-    uint256 expiry;
+    uint256 timeToExpiry; // 0 if the market is expired
+    /// immutables ///
+    uint256 scalarRoot;
     uint256 lnFeeRateRoot;
+    uint256 reserveFeePercent; // base 100
 }
 
-contract MarketMath {
+// params that are expensive to compute, therefore we pre-compute them
+struct MarketPreCompute {
+    int256 rateScalar;
+    int256 totalAsset;
+    int256 rateAnchor;
+    int256 feeRate;
+}
+
+library MarketMath {
     using PMath for uint256;
     using PMath for int256;
     using LogExpMath for int256;
 
     uint256 public constant DAY = 86400;
     uint256 public constant YEAR = 365 * DAY;
+    int256 public constant MAX_MARKET_PROPORTION = (1e18 * 96) / 100;
+    int256 public constant PERCENTAGE_DECIMALS = 100;
 
     function addLiquidity(
         MarketState memory market,
@@ -35,7 +46,7 @@ contract MarketMath {
         uint256 ptDesired
     ) public pure returns (uint256 lpOut, uint256 syUsed, uint256 ptUsed) {
         require(
-            syDesired != 0 && ptDesired != 0,
+            syDesired > 0 && ptDesired > 0,
             "syDesired or ptDesired cannot be 0"
         );
 
@@ -81,9 +92,9 @@ contract MarketMath {
 
     function removeLiquidity(
         MarketState memory market,
-        uint256 lpAmount
+        uint256 lpToRemove
     ) public pure returns (uint256 syOut, uint256 ptOut) {
-        require(lpAmount != 0, "Lp to remove cannot be 0");
+        require(lpToRemove != 0, "Lp to remove cannot be 0");
 
         /// ------------------------------------------------------------
         /// MATH
@@ -93,137 +104,210 @@ contract MarketMath {
         // (x - dx) / x = (y - dy) / y
         // dy = (dx * y) / x
 
-        syOut = (lpAmount * market.totalSy) / market.totalLp;
-        ptOut = (lpAmount * market.totalPt) / market.totalLp;
+        syOut = (lpToRemove * market.totalSy) / market.totalLp;
+        ptOut = (lpToRemove * market.totalPt) / market.totalLp;
     }
 
     function swapSyForExactPt(
         MarketState memory market,
         uint256 amountPtOut,
-        uint256 currentSyExchangeRate,
-        uint256 timeToExpiry
+        uint256 currentSyExchangeRate
     )
         public
         pure
         returns (
             uint256 amountSyIn,
             uint256 amountSyFee,
+            uint256 amountSyToReserve,
             uint256 updatedLnImpliedRate
         )
     {
-        (amountSyIn, amountSyFee, updatedLnImpliedRate) = swapCore(
-            market,
-            amountPtOut.Int(),
-            currentSyExchangeRate,
-            timeToExpiry
-        );
+        (
+            amountSyIn,
+            amountSyFee,
+            amountSyToReserve,
+            updatedLnImpliedRate
+        ) = swapCore(market, amountPtOut.Int(), currentSyExchangeRate);
     }
 
     function swapExactPtForSy(
         MarketState memory market,
         uint256 amountPtIn,
-        uint256 currentSyExchangeRate,
-        uint256 timeToExpiry
+        uint256 currentSyExchangeRate
     )
         public
         pure
         returns (
             uint256 amountSyOut,
             uint256 amountSyFee,
+            uint256 amountSyToReserve,
             uint256 updatedLnImpliedRate
         )
     {
-        (amountSyOut, amountSyFee, updatedLnImpliedRate) = swapCore(
-            market,
-            amountPtIn.neg(),
-            currentSyExchangeRate,
-            timeToExpiry
-        );
+        (
+            amountSyOut,
+            amountSyFee,
+            amountSyToReserve,
+            updatedLnImpliedRate
+        ) = swapCore(market, amountPtIn.neg(), currentSyExchangeRate);
     }
 
     function swapCore(
         MarketState memory market,
         int256 amountPtChange,
-        uint256 currentSyExchangeRate,
-        uint256 timeToExpiry
+        uint256 currentSyExchangeRate
     )
         public
         pure
         returns (
             uint256 amountSyChange,
             uint256 amountSyFee,
+            uint256 amountSyToReserve,
             uint256 updatedLnImpliedRate
         )
     {
-        // Get Required Variables
-        int256 totalAsset = (market.totalSy.mulDown(currentSyExchangeRate))
-            .Int();
-        int256 totalPt = market.totalPt.Int();
-
-        require(market.totalPt > 0 && totalAsset > 0, "Zero Pt or Asset");
-        require(amountPtChange < totalPt, "Amount Pt Change too high");
-
-        int256 rateScalar = _getRateScalar(market.scalarRoot, timeToExpiry);
-        int256 rateAnchor = _getRateAnchor(
-            market.lastLnImpliedRate,
-            totalAsset,
-            totalPt,
-            rateScalar,
-            timeToExpiry
+        require(
+            amountPtChange < market.totalPt.Int(),
+            "Amount Pt Change too high"
         );
 
-        // Calc exchange rate
+        MarketPreCompute memory preComp = getMarketPreCompute(
+            market,
+            currentSyExchangeRate
+        );
+
+        (
+            amountSyChange,
+            amountSyFee,
+            amountSyToReserve,
+            updatedLnImpliedRate
+        ) = calcSwap(market, preComp, amountPtChange, currentSyExchangeRate);
+    }
+
+    function getMarketPreCompute(
+        MarketState memory market,
+        uint256 currentSyExchangeRate
+    ) public pure returns (MarketPreCompute memory res) {
+        res.totalAsset = (market.totalSy.mulDown(currentSyExchangeRate)).Int();
+
+        require(market.totalPt > 0 && res.totalAsset > 0, "Zero Pt or Asset");
+
+        res.rateScalar = _getRateScalar(market.scalarRoot, market.timeToExpiry)
+            .Int();
+
+        res.rateAnchor = _getRateAnchor(
+            market.lastLnImpliedRate,
+            res.totalAsset,
+            market.totalPt.Int(),
+            res.rateScalar,
+            market.timeToExpiry
+        );
+
+        res.feeRate = _getNextExchangeRateFromLastLnImpliedRate(
+            market.lnFeeRateRoot,
+            market.timeToExpiry
+        );
+    }
+
+    function calcSwap(
+        MarketState memory market,
+        MarketPreCompute memory preComp,
+        int256 amountPtChange,
+        uint256 currentSyExchangeRate
+    )
+        public
+        pure
+        returns (
+            uint256 amountSyChange,
+            uint256 amountSyFee,
+            uint256 amountSyToReserve,
+            uint256 updatedLnImpliedRate
+        )
+    {
+        int256 totalPt = market.totalPt.Int();
         int256 exchangeRate = _getExchangeRate(
-            totalAsset,
+            preComp.totalAsset,
             totalPt,
-            rateScalar,
-            rateAnchor,
+            preComp.rateScalar,
+            preComp.rateAnchor,
             amountPtChange
         );
 
-        int256 amountAsset = amountPtChange.divDown(exchangeRate);
+        int256 amountAsset = amountPtChange.divDown(exchangeRate).neg();
 
-        updatedLnImpliedRate = _getLnImpliedRate(
-            totalAsset + amountAsset,
-            totalPt.subNoNeg(amountPtChange),
-            rateScalar,
-            rateAnchor,
-            timeToExpiry
+        int256 fee = preComp.feeRate;
+        if (amountPtChange > 0) {
+            int256 postFeeExchangeRate = exchangeRate.divDown(fee);
+            require(
+                postFeeExchangeRate > PMath.IONE,
+                "Market Exchange Rate below 1"
+            );
+
+            fee = amountAsset.mulDown(PMath.IONE - fee);
+        } else {
+            fee = ((amountAsset * (PMath.IONE - fee)) / fee).neg();
+        }
+
+        int256 amountAssetToReserve = (fee * market.reserveFeePercent.Int()) /
+            PERCENTAGE_DECIMALS;
+        int256 amountAssetToAccount = amountAsset - fee;
+
+        amountSyChange = (amountAssetToAccount.abs()).divDown(
+            currentSyExchangeRate
+        );
+        amountSyFee = fee.Uint().divDown(currentSyExchangeRate);
+        amountSyToReserve = amountAssetToReserve.Uint().divDown(
+            currentSyExchangeRate
         );
 
-        console.log("updatedLnImpliedRate", updatedLnImpliedRate);
+        updatedLnImpliedRate = getPostTradeLnImpliedRate(
+            market,
+            preComp,
+            amountPtChange,
+            amountAssetToAccount,
+            amountAssetToReserve
+        );
+    }
 
-        if (amountAsset < 0) {
-            amountSyChange = (amountAsset.neg().Uint()).divDown(
-                currentSyExchangeRate
-            );
-        } else {
-            amountSyChange = (
-                amountAsset.Uint().divDown(currentSyExchangeRate)
-            );
-        }
+    function getPostTradeLnImpliedRate(
+        MarketState memory market,
+        MarketPreCompute memory preComp,
+        int256 amountPtChange,
+        int256 amountAssetToAccount,
+        int256 amountAssetToReserve
+    ) public pure returns (uint256 updatedLnImpliedRate) {
+        int256 totalPt = market.totalPt.Int();
+
+        updatedLnImpliedRate = _getLnImpliedRate(
+            preComp.totalAsset.subNoNeg(
+                amountAssetToAccount + amountAssetToReserve
+            ),
+            totalPt.subNoNeg(amountPtChange),
+            preComp.rateScalar,
+            preComp.rateAnchor,
+            market.timeToExpiry
+        );
     }
 
     function setInitialLnImpliedRate(
-        int256 scalarRoot,
-        int256 initialAnchor,
-        uint256 totalSy,
+        MarketState memory market,
+        uint256 initialAnchor,
+        uint256 totalSy, // As marketState is not updated, we need to pass totalSy and totalPt at first addLiquidity
         uint256 totalPt,
-        uint256 currentSyExchangeRate,
-        uint256 timeToExpiry
+        uint256 currentSyExchangeRate
     ) public pure returns (uint256 lastLnImpliedRate) {
-        // SY held by pool in terms of ybt's Accounting/Underlying Asset
-        int256 totalAsset = totalSy.mulDown(currentSyExchangeRate).Int();
-
-        // Getting Rate scalar
-        int256 rateScalar = _getRateScalar(scalarRoot, timeToExpiry);
+        uint256 totalAsset = totalSy.mulDown(currentSyExchangeRate);
+        uint256 rateScalar = _getRateScalar(
+            market.scalarRoot,
+            market.timeToExpiry
+        );
 
         lastLnImpliedRate = _getLnImpliedRate(
-            totalAsset,
+            totalAsset.Int(),
             totalPt.Int(),
-            rateScalar,
-            initialAnchor,
-            timeToExpiry
+            rateScalar.Int(),
+            initialAnchor.Int(),
+            market.timeToExpiry
         );
     }
 
@@ -234,14 +318,15 @@ contract MarketMath {
     // Formula used, rateScalar = i_scalarRoot / years to expiry
     // where, years to expiry  = timeToExpiry / 365(1 Year)
     function _getRateScalar(
-        int256 scalarRoot,
+        uint256 scalarRoot,
         uint256 timeToExpiry
-    ) public pure returns (int256 rateScalar) {
-        rateScalar = (scalarRoot * YEAR.Int()) / timeToExpiry.Int();
+    ) public pure returns (uint256 rateScalar) {
+        rateScalar = (scalarRoot * YEAR) / timeToExpiry;
 
         require(rateScalar > 0, "Invalid rate scalar");
     }
 
+    // Required by _getRateAnchor
     // Formula used, exchangeRate(t*) = lastImpliedRate^yearsToExpiry (Pre-trade)
     function _getNextExchangeRateFromLastLnImpliedRate(
         uint256 lastLnImpliedRate,
@@ -251,6 +336,8 @@ contract MarketMath {
             LogExpMath.exp(((lastLnImpliedRate * timeToExpiry) / YEAR).Int());
     }
 
+    // Required by _getExchangeRate
+    // Formula used, rateAnchor = exchangeRate(t*) - ln(proportion / 1-proportion) / rateScalar
     function _getRateAnchor(
         uint256 lastLnImpliedRate,
         int256 totalAsset,
@@ -274,6 +361,8 @@ contract MarketMath {
         rateAnchor = nextExhangeRate - lastExchangeRate;
     }
 
+    // Required by swapCore
+    // Formula used, exchangeRate = (ln(proportion / 1-proportion) / rateScalar) + anchorRate
     function _getExchangeRate(
         int256 totalAsset,
         int256 totalPt,
@@ -287,7 +376,11 @@ contract MarketMath {
             totalAsset + totalPt
         );
 
-        // Formula used, assetPrice = (ln(p / 1-p) / rateScalar) + anchorRate
+        require(
+            proportion < MAX_MARKET_PROPORTION,
+            "Market proportion cannot be more than MAX_MARKET_PROPORTION"
+        );
+
         exchangeRate =
             LogExpMath.ln(proportion.divDown(PMath.IONE - proportion)).divDown(
                 rateScalar
@@ -298,7 +391,8 @@ contract MarketMath {
         require(exchangeRate >= PMath.IONE, "Invalid exchange rate");
     }
 
-    // Formula used, (ln(exchangeRate) * year) / timeToExpiry (Post-trade)
+    // Required by swapCore After trade to set LastLnImpliedRate
+    // Formula used, (ln(exchangeRate) * year) / timeToExpiry
     function _getLnImpliedRate(
         int256 totalAsset,
         int256 totalPt,
@@ -306,9 +400,6 @@ contract MarketMath {
         int256 rateAnchor,
         uint256 timeToExpiry
     ) public pure returns (uint256 lnImpliedRate) {
-        console.log("OtotalAsset", totalAsset);
-        // console.log("OtotalPt", totalPt);
-
         int256 exchangeRate = _getExchangeRate(
             totalAsset,
             totalPt,

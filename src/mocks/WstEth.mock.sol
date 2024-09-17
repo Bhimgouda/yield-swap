@@ -2,12 +2,16 @@
 pragma solidity 0.8.19;
 
 import {ERC20} from "@openzeppelin/contracts/token/ERC20/ERC20.sol";
-import {IStEth} from "../interfaces/core/IStEth.sol";
 import {PMath} from "../../lib/PMath.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {console} from "forge-std/console.sol";
 
-contract WstEth is ERC20("Wrapped liquid staked Ether 2.0", "wstETH") {
+/**
+ * @title WstEth
+ * @notice Mock for WstEth to be used in tests
+ * @dev This is a GYGP model YBT (Yield Bearing Token)
+ */
+
+contract WstEth is ERC20("Wrapped LST Lido", "wstETH") {
     using PMath for uint256;
 
     address private immutable i_stETH;
@@ -20,8 +24,7 @@ contract WstEth is ERC20("Wrapped liquid staked Ether 2.0", "wstETH") {
         i_stETH = _stETH;
     }
 
-    function wrap(uint256 stETHAmount) external returns (uint256 wstEthAmount) {
-        console.log(msg.sender);
+    function mint(uint256 stETHAmount) external returns (uint256 wstEthAmount) {
         if (totalSupply() > 0) {
             wstEthAmount = (stETHAmount * totalSupply()) / s_stEthBalance;
         } else {
@@ -41,6 +44,7 @@ contract WstEth is ERC20("Wrapped liquid staked Ether 2.0", "wstETH") {
         _burn(msg.sender, wstETHAmount);
     }
 
+    // Used in SY implementation to get exchange rate
     function getStETHByWstETH(
         uint256 wstETHAmount
     ) external view returns (uint256) {
@@ -51,13 +55,21 @@ contract WstEth is ERC20("Wrapped liquid staked Ether 2.0", "wstETH") {
         }
     }
 
+    // To mock interest accrual
     function addInterest() external {
         if (totalSupply() > 0) {
-            s_stEthBalance += (totalSupply() * 5) / 100; // equivalent to adding 5% interest
+            s_stEthBalance += totalSupply().mulDown(5e15); // equivalent to adding 5% interest
         }
     }
 
+    // Used in SY implementation to get underlying token
     function stETH() external view returns (address) {
         return i_stETH;
+    }
+}
+
+contract StEth is ERC20("Staked Liquid Ether", "StEth") {
+    function mint(address user, uint256 amount) external {
+        _mint(user, amount);
     }
 }

@@ -5,13 +5,14 @@ import {Test} from "forge-std/Test.sol";
 import {PMath} from "../../lib/PMath.sol";
 import {console} from "forge-std/console.sol";
 
-import {ICdai} from "../../src/interfaces/core/ICdai.sol";
-import {IWstEth} from "../../src/interfaces/core/IWstEth.sol";
-import {IStEth} from "../../src/interfaces/core/IStEth.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {IYBT} from "../../src/interfaces/core/IYBT.sol";
+import {ISY} from "../../src/interfaces/core/ISY.sol";
+
+import {TokenDecimals} from "../../src/core/libraries/TokenDecimals.sol";
 
 contract TestBase is Test {
     using PMath for uint256;
+    using TokenDecimals for uint256;
 
     address internal immutable USER_0 = vm.envAddress("USER_0");
     address internal immutable USER_1 = vm.envAddress("USER_1");
@@ -20,6 +21,7 @@ contract TestBase is Test {
     address internal INVALID_ADDRESS = makeAddr("INVALID");
     uint256 internal ONE = 1e18;
     uint256 internal DAY = 86400;
+    uint256 internal YEAR = DAY * 365;
 
     modifier prank(address addr) {
         if (addr.balance < 10 ether) vm.deal(addr, 1000 ether);
@@ -28,49 +30,29 @@ contract TestBase is Test {
         vm.stopPrank();
     }
 
-    function _mintCdaiForUser(
-        address cdai,
+    function _mintYbtForUser(
+        address ybt,
         address user,
-        uint256 amountCdai
+        uint256 amountYbt
     ) internal {
-        uint256 requiredDai = amountCdai.mulDown(
-            ICdai(cdai).exchangeRateStored() / 1e18
-        );
-        if (block.chainid == 31337) {
-            ICdai(cdai).mint(requiredDai);
-        } else {
-            address dai = ICdai(cdai).underlying();
-
-            // Minted DAI for the user
-            deal(dai, user, requiredDai, true);
-            // Deposited DAI in compound for CDAI
-            IERC20(dai).approve(cdai, requiredDai);
-            ICdai(cdai).mint(requiredDai);
-        }
+        IYBT(ybt).mint(amountYbt);
     }
 
-    // Deposits eth -> stEth -> wstEth
-    function _mintWstEthForUser(
-        address wstEth,
+    /**
+     * @dev Works only for 1:1 (SY:YBT)
+     */
+    function _mintSYForUser(
+        address SY,
         address user,
-        uint256 amountWstEth
+        uint256 amountSy
     ) internal {
-        uint256 requiredEth;
+        address YBT = ISY(SY).yieldToken();
+        (, , uint8 ybtDecimals) = ISY(SY).assetInfo();
+        uint256 amountYbt = amountSy.standardize(18, ybtDecimals);
 
-        if (block.chainid == 31337) {
-            requiredEth = amountWstEth.mulDown(
-                IWstEth(wstEth).getStETHByWstETH(1e18)
-            );
+        _mintYbtForUser(YBT, user, amountYbt);
+        IYBT(YBT).approve(address(SY), amountYbt);
 
-            IWstEth(wstEth).wrap(requiredEth);
-        } else {
-            address stEth = IWstEth(wstEth).stETH();
-            requiredEth = amountWstEth.mulDown(
-                IWstEth(wstEth).getStETHByWstETH(1e18) + 1
-            );
-            deal(stEth, user, requiredEth, true);
-            IERC20(stEth).approve(wstEth, requiredEth);
-            IWstEth(wstEth).wrap(requiredEth);
-        }
+        ISY(SY).deposit(user, YBT, amountYbt, amountSy);
     }
 }

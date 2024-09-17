@@ -1,30 +1,12 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {TestYieldContracts} from "../../helpers/TestYieldContracts.sol";
+import {TestYield} from "../../helpers/TestYield.sol";
 import {console} from "forge-std/console.sol";
 
-import {ISY} from "../../../src/interfaces/core/ISY.sol";
-
-import {IYT} from "../../../src/interfaces/core/IYT.sol";
-import {IPT} from "../../../src/interfaces/core/IPT.sol";
-
-contract TestPT is TestYieldContracts {
-    address private SY;
-    address private factory;
-    address private YT;
-
-    IPT private pt;
-
-    uint256 private immutable EXPIRY = block.timestamp + (10 * DAY);
-
+contract TestPT is TestYield {
     function setUp() external {
-        SY = _deploySYForTesting();
-
-        (address PT, address _YT, address _factory) = _createPtYt(SY, EXPIRY);
-        factory = _factory;
-        YT = _YT;
-        pt = IPT(PT);
+        _yieldTestSetup();
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -32,8 +14,8 @@ contract TestPT is TestYieldContracts {
     //////////////////////////////////////////////////////////////*/
 
     function testPTMetadata() external view {
-        string memory ptName = pt.name();
-        string memory ptSymbol = pt.symbol();
+        string memory ptName = PT.name();
+        string memory ptSymbol = PT.symbol();
 
         // Might need to change the hardcoded values
         string memory expectedPtName = "PT Lido wstETH";
@@ -44,44 +26,44 @@ contract TestPT is TestYieldContracts {
     }
 
     function testFactoryForPT() external view {
-        address factoryForPt = pt.factory();
-        address expectedFactoryForPt = factory;
+        address factoryForPt = PT.factory();
+        address expectedFactoryForPt = address(ptYtFactory);
 
         assertEq(factoryForPt, expectedFactoryForPt);
     }
 
     function testYTForPT() external view {
-        address ytForPt = pt.YT();
-        address expectedYtForPt = YT;
+        address ytForPt = PT.YT();
+        address expectedYtForPt = address(YT);
 
         assertEq(ytForPt, expectedYtForPt);
     }
 
     function testSYForPT() external view {
-        address syForPt = pt.SY();
-        address expectedSyForPt = SY;
+        address syForPt = PT.SY();
+        address expectedSyForPt = address(SY);
 
         assertEq(syForPt, expectedSyForPt);
     }
 
     function testExpiry() external view {
-        uint256 ptExpiry = pt.expiry();
-        uint256 expectedPtExpiry = EXPIRY;
+        uint256 ptExpiry = PT.expiry();
+        uint256 expectedPtExpiry = EXPIRY_DURATION;
 
         assertEq(ptExpiry, expectedPtExpiry);
     }
 
     function testIsExpiredBeforeExpiry() external view {
-        bool response = pt.isExpired();
+        bool response = PT.isExpired();
         bool expectedResponse = false;
 
         assertEq(response, expectedResponse);
     }
 
     function testIsExpiredAfterExpiry() external {
-        vm.warp(EXPIRY);
+        vm.warp(EXPIRY_DURATION);
 
-        bool response = pt.isExpired();
+        bool response = PT.isExpired();
         bool expectedResponse = true;
 
         assertEq(response, expectedResponse);

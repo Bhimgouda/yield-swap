@@ -5,7 +5,9 @@ import {IYT} from "../interfaces/core/IYT.sol";
 import {ISY} from "..//interfaces/core/ISY.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-contract RouterYT {
+import {console} from "forge-std/console.sol";
+
+contract YTRouter {
     /**
      *
      * @notice Please approve amountToken to this contract before calling this function

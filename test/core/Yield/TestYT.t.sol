@@ -1,44 +1,23 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {TestYieldContracts} from "../../helpers/TestYieldContracts.sol";
+import {TestYield} from "../../helpers/TestYield.sol";
 import {console} from "forge-std/console.sol";
 import {PMath} from "../../../lib/PMath.sol";
 
-import {ISY} from "../../../src/interfaces/core/ISY.sol";
-import {IYT} from "../../../src/interfaces/core/IYT.sol";
-import {IPT} from "../../../src/interfaces/core/IPT.sol";
-
-contract TestYT is TestYieldContracts {
+contract TestYT is TestYield {
     using PMath for uint256;
 
-    address private factory;
-
-    ISY private sy;
-    IPT private pt;
-    IYT private yt;
-
-    uint256 private immutable EXPIRY = block.timestamp + (10 * DAY);
-    uint256 private constant AMOUNT_SY = 1e18;
-
     function setUp() external {
-        sy = ISY(_deploySYForTesting());
-
-        (address PT, address YT, address _factory) = _createPtYt(
-            address(sy),
-            EXPIRY
-        );
-        factory = _factory;
-        yt = IYT(YT);
-        pt = IPT(PT);
+        _yieldTestSetup();
     }
 
     function testPreviewStripSy()
         public
         returns (uint256 amountPt, uint256 amountYt)
     {
-        (amountPt, amountYt) = yt.previewStripSy(AMOUNT_SY);
-        uint256 expectedAmountPt = AMOUNT_SY.mulDown(sy.exchangeRate());
+        (amountPt, amountYt) = YT.previewStripSy(AMOUNT_SY);
+        uint256 expectedAmountPt = AMOUNT_SY.mulDown(SY.exchangeRate());
 
         assertEq(amountPt, amountYt, "Unequal amounts of PT and YT");
         assertEq(amountPt, expectedAmountPt);
@@ -47,7 +26,7 @@ contract TestYT is TestYieldContracts {
     function testPreviewRedeemSy() external {
         (uint256 amountPt, ) = testPreviewStripSy();
 
-        uint256 amountSy = yt.previewRedeemSy(amountPt);
+        uint256 amountSy = YT.previewRedeemSy(amountPt);
         uint256 expectedAmountSy = AMOUNT_SY;
 
         assertEq(amountSy, expectedAmountSy);
@@ -58,20 +37,20 @@ contract TestYT is TestYieldContracts {
         uint256 amountPt = 1e17; // 0.1 PT
         uint256 amountYt = 2e17; // 0.2 YT
 
-        uint256 amountSy = yt.previewRedeemSyBeforeExpiry(amountPt, amountYt);
-        uint256 expectedAmountSy = amountPt.divDown(sy.exchangeRate()); // As PT is min in our case
+        uint256 amountSy = YT.previewRedeemSyBeforeExpiry(amountPt, amountYt);
+        uint256 expectedAmountSy = amountPt.divDown(SY.exchangeRate()); // As PT is min in our case
 
         assertEq(amountSy, expectedAmountSy);
     }
 
     function testStripSyAddsSyToReserve() external prank(USER_0) {
-        uint256 startSyBalanceOfYt = sy.balanceOf(address(yt));
+        uint256 startSyBalanceOfYt = SY.balanceOf(address(YT));
 
         // Act
         _stripSy(USER_0, AMOUNT_SY);
 
-        uint256 endSYBalanceOfYT = sy.balanceOf(address(yt));
-        uint256 updatedSyReserve = yt.syReserve();
+        uint256 endSYBalanceOfYT = SY.balanceOf(address(YT));
+        uint256 updatedSyReserve = YT.syReserve();
 
         assertEq(endSYBalanceOfYT - startSyBalanceOfYt, AMOUNT_SY);
         assertEq(
@@ -82,19 +61,19 @@ contract TestYT is TestYieldContracts {
     }
 
     function testStripSyMintsPtYtForUser() external prank(USER_0) {
-        uint256 startPtBalanceOfUser = pt.balanceOf(USER_0);
-        uint256 startYtBalanceOfUser = yt.balanceOf(USER_0);
-        uint256 startPtTotalSupply = pt.totalSupply();
-        uint256 startYtTotalSupply = yt.totalSupply();
+        uint256 startPtBalanceOfUser = PT.balanceOf(USER_0);
+        uint256 startYtBalanceOfUser = YT.balanceOf(USER_0);
+        uint256 startPtTotalSupply = PT.totalSupply();
+        uint256 startYtTotalSupply = YT.totalSupply();
 
         _stripSy(USER_0, AMOUNT_SY);
 
-        uint256 endPtBalanceOfUser = pt.balanceOf(USER_0);
-        uint256 endYtBalanceOfUser = yt.balanceOf(USER_0);
-        uint256 endPtTotalSupply = pt.totalSupply();
-        uint256 endYtTotalSupply = yt.totalSupply();
+        uint256 endPtBalanceOfUser = PT.balanceOf(USER_0);
+        uint256 endYtBalanceOfUser = YT.balanceOf(USER_0);
+        uint256 endPtTotalSupply = PT.totalSupply();
+        uint256 endYtTotalSupply = YT.totalSupply();
 
-        (uint256 expectedAmountPt, uint256 expectedAmountYt) = yt
+        (uint256 expectedAmountPt, uint256 expectedAmountYt) = YT
             .previewStripSy(AMOUNT_SY);
 
         assertEq(endPtBalanceOfUser - startPtBalanceOfUser, expectedAmountPt);
@@ -107,7 +86,7 @@ contract TestYT is TestYieldContracts {
         _afterExpiry();
 
         vm.expectRevert();
-        yt.stripSy(USER_0, AMOUNT_SY);
+        YT.stripSy(USER_0, AMOUNT_SY);
     }
 
     function testRedeemSyTransfersSyToUser() external prank(USER_0) {
@@ -115,16 +94,16 @@ contract TestYT is TestYieldContracts {
         (uint256 amountPt, ) = _stripSy(USER_0, AMOUNT_SY);
         _afterExpiry();
 
-        uint256 startSyBalanceOfYt = sy.balanceOf(address(yt));
-        uint256 startSyBalanceOfUser = sy.balanceOf(USER_0);
+        uint256 startSyBalanceOfYt = SY.balanceOf(address(YT));
+        uint256 startSyBalanceOfUser = SY.balanceOf(USER_0);
 
         // Act
-        yt.redeemSy(USER_0, amountPt);
+        YT.redeemSy(USER_0, amountPt);
 
         // Assert
-        uint256 endSyBalanceOfYt = sy.balanceOf(address(yt));
-        uint256 endSyBalanceOfUser = sy.balanceOf(USER_0);
-        uint256 updatedSyReserve = yt.syReserve();
+        uint256 endSyBalanceOfYt = SY.balanceOf(address(YT));
+        uint256 endSyBalanceOfUser = SY.balanceOf(USER_0);
+        uint256 updatedSyReserve = YT.syReserve();
 
         assertEq(startSyBalanceOfYt - endSyBalanceOfYt, AMOUNT_SY);
         assertEq(endSyBalanceOfUser - startSyBalanceOfUser, AMOUNT_SY);
@@ -140,18 +119,18 @@ contract TestYT is TestYieldContracts {
         (uint256 amountPt, ) = _stripSy(USER_0, AMOUNT_SY);
         _afterExpiry();
 
-        uint256 startPtBalanceOfUser = pt.balanceOf(USER_0);
-        uint256 startYtBalanceOfUser = yt.balanceOf(USER_0);
-        uint256 startPtTotalSupply = pt.totalSupply();
-        uint256 startYtTotalSupply = yt.totalSupply();
+        uint256 startPtBalanceOfUser = PT.balanceOf(USER_0);
+        uint256 startYtBalanceOfUser = YT.balanceOf(USER_0);
+        uint256 startPtTotalSupply = PT.totalSupply();
+        uint256 startYtTotalSupply = YT.totalSupply();
 
         // Act
-        yt.redeemSy(USER_0, amountPt);
+        YT.redeemSy(USER_0, amountPt);
 
-        uint256 endPtBalanceOfUser = pt.balanceOf(USER_0);
-        uint256 endYtBalanceOfUser = yt.balanceOf(USER_0);
-        uint256 endPtTotalSupply = pt.totalSupply();
-        uint256 endYtTotalSupply = yt.totalSupply();
+        uint256 endPtBalanceOfUser = PT.balanceOf(USER_0);
+        uint256 endYtBalanceOfUser = YT.balanceOf(USER_0);
+        uint256 endPtTotalSupply = PT.totalSupply();
+        uint256 endYtTotalSupply = YT.totalSupply();
 
         assertEq(startPtBalanceOfUser - endPtBalanceOfUser, amountPt);
         assertEq(startYtBalanceOfUser - endYtBalanceOfUser, amountPt);
@@ -166,13 +145,13 @@ contract TestYT is TestYieldContracts {
         (uint256 amountPt, uint256 _amountYt) = _stripSy(USER_0, AMOUNT_SY);
         uint256 amountYt = _amountYt / 2;
 
-        uint256 startSyBalanceOfUser = sy.balanceOf(USER_0);
+        uint256 startSyBalanceOfUser = SY.balanceOf(USER_0);
 
-        yt.redeemSyBeforeExpiry(USER_0, amountPt, amountYt);
+        YT.redeemSyBeforeExpiry(USER_0, amountPt, amountYt);
 
-        uint256 endSyBalanceOfUser = sy.balanceOf(USER_0);
+        uint256 endSyBalanceOfUser = SY.balanceOf(USER_0);
         uint256 expectedEndSyBalanceOfUser = amountYt.divDown(
-            sy.exchangeRate()
+            SY.exchangeRate()
         );
 
         assertEq(
@@ -186,7 +165,7 @@ contract TestYT is TestYieldContracts {
         (uint256 amountPt, ) = _stripSy(USER_0, AMOUNT_SY);
 
         vm.expectRevert();
-        yt.redeemSy(USER_0, amountPt);
+        YT.redeemSy(USER_0, amountPt);
     }
 
     function testRedeemSyBeforeExpiryRevertsIfExpired() external prank(USER_0) {
@@ -195,25 +174,25 @@ contract TestYT is TestYieldContracts {
 
         _afterExpiry();
         vm.expectRevert();
-        yt.redeemSyBeforeExpiry(USER_0, amountPt, amountYt);
+        YT.redeemSyBeforeExpiry(USER_0, amountPt, amountYt);
     }
 
     function _stripSy(
         address user,
         uint256 amountSy
     ) internal returns (uint256 amountPt, uint256 amountYt) {
-        _mintSYForUser(sy, user, amountSy);
-        sy.approve(address(yt), amountSy);
-        (amountPt, amountYt) = yt.stripSy(user, amountSy);
+        _mintSYForUser(address(SY), USER_0, amountSy);
+        SY.approve(address(YT), amountSy);
+        (amountPt, amountYt) = YT.stripSy(user, amountSy);
     }
 
     function _afterExpiry() internal {
-        vm.warp(EXPIRY);
+        vm.warp(EXPIRY_DURATION);
     }
 
     function testCurrentSyExchangeRateIsValid() external {
-        uint256 currentSyExchangeRate = yt.currentSyExchangeRate();
-        uint256 syExchangeRate = sy.exchangeRate();
+        uint256 currentSyExchangeRate = YT.currentSyExchangeRate();
+        uint256 syExchangeRate = SY.exchangeRate();
 
         assert(currentSyExchangeRate >= syExchangeRate);
     }
@@ -223,8 +202,8 @@ contract TestYT is TestYieldContracts {
     //////////////////////////////////////////////////////////////*/
 
     function testYTMetadata() external view {
-        string memory ytName = yt.name();
-        string memory ytSymbol = yt.symbol();
+        string memory ytName = YT.name();
+        string memory ytSymbol = YT.symbol();
 
         string memory expectedYtName = "YT Lido wstETH";
         string memory expectedYtSymbol = "YT-wstETH";
@@ -234,37 +213,37 @@ contract TestYT is TestYieldContracts {
     }
 
     function testPTForYT() external view {
-        address ptForyt = yt.PT();
-        address expectedPtForYt = address(pt);
+        address ptForyt = YT.PT();
+        address expectedPtForYt = address(PT);
 
         assertEq(ptForyt, expectedPtForYt);
     }
 
     function testSYForYT() external view {
-        address syForYt = yt.SY();
-        address expectedSyForYt = address(sy);
+        address syForYt = YT.SY();
+        address expectedSyForYt = address(SY);
 
         assertEq(syForYt, expectedSyForYt);
     }
 
     function testYTExpiry() external view {
-        uint256 ytExpiry = yt.expiry();
-        uint256 expectedYtExpiry = EXPIRY;
+        uint256 ytExpiry = YT.expiry();
+        uint256 expectedYtExpiry = EXPIRY_DURATION;
 
         assertEq(ytExpiry, expectedYtExpiry);
     }
 
     function testYTIsExpiredBeforeExpiry() external view {
-        bool response = yt.isExpired();
+        bool response = YT.isExpired();
         bool expectedResponse = false;
 
         assertEq(response, expectedResponse);
     }
 
     function testYTIsExpiredAfterExpiry() external {
-        vm.warp(EXPIRY);
+        vm.warp(EXPIRY_DURATION);
 
-        bool response = yt.isExpired();
+        bool response = YT.isExpired();
         bool expectedResponse = true;
 
         assertEq(response, expectedResponse);

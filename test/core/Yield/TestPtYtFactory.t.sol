@@ -1,27 +1,19 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {TestYieldContracts} from "../../helpers/TestYieldContracts.sol";
-import {console} from "forge-std/console.sol";
-
-import {ISY} from "../../../src/interfaces/core/ISY.sol";
+import {TestYield} from "../../helpers/TestYield.sol";
 import {IPtYtFactory} from "../../../src/interfaces/core/IPtYtFactory.sol";
 
-import {IYT} from "../../../src/interfaces/core/IYT.sol";
-import {IPT} from "../../../src/interfaces/core/IPT.sol";
+import {console} from "forge-std/console.sol";
 
 /**
- * @title TestYieldContracts
+ * @title TestYield
  * @author
- * @notice Using SYWstEth to test TestYieldContracts, For context SYWstEth is a GYGP Token with no rewards
+ * @notice Using SYWstEth to test TestYield, For context SYWstEth is a GYGP Token with no rewards
  */
-contract TestPtYtFactory is TestYieldContracts {
-    IPtYtFactory private ptYtFactory;
-    address private FACTORY_OWNER;
-
+contract TestPtYtFactory is TestYield {
     function setUp() external {
-        ptYtFactory = IPtYtFactory(_deployPtYtFactory());
-        FACTORY_OWNER = ptYtFactory.owner();
+        _yieldTestSetup();
     }
 
     /*///////////////////////////////////////////////////////////////
@@ -30,14 +22,17 @@ contract TestPtYtFactory is TestYieldContracts {
 
     function testSetInterestFeeRateUpdatesInterestFeeRate()
         external
-        prank(FACTORY_OWNER)
+        prank(ptYtFactory.owner())
     {
         uint256 newInterestFeeRate = 12e16;
         ptYtFactory.setInterestFeeRate(newInterestFeeRate);
         assertEq(ptYtFactory.interestFeeRate(), newInterestFeeRate);
     }
 
-    function testSetTreasuryUpdatesTreasury() external prank(FACTORY_OWNER) {
+    function testSetTreasuryUpdatesTreasury()
+        external
+        prank(ptYtFactory.owner())
+    {
         address newTreasury = makeAddr("NEW TREASURY");
         ptYtFactory.setTreasury(newTreasury);
         assertEq(ptYtFactory.treasury(), newTreasury);

@@ -14,6 +14,8 @@
 
 pragma solidity ^0.8.0;
 
+import "forge-std/console.sol";
+
 /* solhint-disable private-vars-leading-underscore, reason-string */
 
 library PMath {
@@ -71,7 +73,10 @@ library PMath {
         return mulDown(a, ONE + factor);
     }
 
-    function slipDown(uint256 a, uint256 factor) internal pure returns (uint256) {
+    function slipDown(
+        uint256 a,
+        uint256 factor
+    ) internal pure returns (uint256) {
         return mulDown(a, ONE - factor);
     }
 
@@ -182,15 +187,27 @@ library PMath {
         return uint192(x);
     }
 
-    function isAApproxB(uint256 a, uint256 b, uint256 eps) internal pure returns (bool) {
+    function isAApproxB(
+        uint256 a,
+        uint256 b,
+        uint256 eps
+    ) internal pure returns (bool) {
         return mulDown(b, ONE - eps) <= a && a <= mulDown(b, ONE + eps);
     }
 
-    function isAGreaterApproxB(uint256 a, uint256 b, uint256 eps) internal pure returns (bool) {
+    function isAGreaterApproxB(
+        uint256 a,
+        uint256 b,
+        uint256 eps
+    ) internal pure returns (bool) {
         return a >= b && a <= mulDown(b, ONE + eps);
     }
 
-    function isASmallerApproxB(uint256 a, uint256 b, uint256 eps) internal pure returns (bool) {
+    function isASmallerApproxB(
+        uint256 a,
+        uint256 b,
+        uint256 eps
+    ) internal pure returns (bool) {
         return a <= b && a >= mulDown(b, ONE - eps);
     }
 }

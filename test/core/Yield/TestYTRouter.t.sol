@@ -1,50 +1,42 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.19;
 
-import {TestYieldContracts} from "../../helpers/TestYieldContracts.sol";
+import {TestYield} from "../../helpers/TestYield.sol";
 import {console} from "forge-std/console.sol";
 import {PMath} from "../../../lib/PMath.sol";
-import "../../../script/DeployRouterYt.s.sol";
-import {RouterYT} from "../../../src/router/RouterYT.sol";
-import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
+import {DeployYTRouter} from "../../../script/DeployYTRouter.s.sol";
+import {YTRouter} from "../../../src/router/YTRouter.sol";
+import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
 
-import {ISY} from "../../../src/interfaces/core/ISY.sol";
-import {IYT} from "../../../src/interfaces/core/IYT.sol";
-import {IPT} from "../../../src/interfaces/core/IPT.sol";
-
-contract TestYTRouter is TestYieldContracts {
+contract TestYTRouter is TestYield {
     using PMath for uint256;
 
-    address private factory;
+    YTRouter private ytRouter;
+    uint256 private amountYt;
 
-    RouterYT private routerYt;
-    ISY private sy;
-    IPT private pt;
-    IYT private yt;
-
-    uint256 private immutable EXPIRY = block.timestamp + (10 * DAY);
-    uint256 private constant AMOUNT_SY = 1e18;
+    uint256 private INTEREST_PERCENTAGE = 5e15; // 0.5%
 
     function setUp() external {
-        sy = ISY(_deploySYForTesting());
+        _yieldTestSetup();
 
-        (address PT, address YT, address _factory) = _createPtYt(
-            address(sy),
-            EXPIRY
-        );
-
-        DeployRouterYt deployer = new DeployRouterYt();
-        routerYt = RouterYT(deployer.run());
-
-        factory = _factory;
-        yt = IYT(YT);
-        pt = IPT(PT);
+        DeployYTRouter deployYTRouter = new DeployYTRouter();
+        ytRouter = YTRouter(deployYTRouter.run());
     }
 
-    function testStrip() external prank(USER_0) {
-        _mintWstEthForUser(sy.yieldToken(), USER_0, 1e18);
+    function _mintYtForUser() internal {
+        _mintSYForUser(address(SY), USER_0, AMOUNT_SY);
+        SY.approve(address(YT), AMOUNT_SY);
+        (, amountYt) = YT.stripSy(USER_0, AMOUNT_SY);
+    }
 
-        IERC20(sy.yieldToken()).approve(address(routerYt), 1e18);
-        routerYt.strip(address(sy), address(yt), sy.yieldToken(), 1e18);
+    function testPreviewDueInterest() external prank(USER_0) {
+        _mintYtForUser();
+
+        _addInterest();
+
+        console.log("prevYbtBalance", YBT.balanceOf(USER_0));
+        uint256 interestOut = YT.redeemDueInterest(USER_0);
+        console.log("interestOut", interestOut);
+        console.log("currentYbtBalance", YBT.balanceOf(USER_0));
     }
 }

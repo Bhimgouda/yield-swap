@@ -5,10 +5,8 @@ import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
 // Mocks
-import {StEth} from "../../src/mocks/StEth.mock.sol";
-import {WstEth} from "../../src/mocks/WstEth.mock.sol";
-import {DAI} from "../../src/mocks/Dai.mock.sol";
-import {Cdai} from "../../src/mocks/Cdai.mock.sol";
+import {WstEth, StEth} from "../../src/mocks/WstEth.mock.sol";
+import {Cdai, DAI} from "../../src/mocks/Cdai.mock.sol";
 
 /**
  * @title Network Helper config

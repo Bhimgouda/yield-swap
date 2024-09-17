@@ -4,6 +4,7 @@ pragma solidity 0.8.19;
 import {TokenHelper} from "../../libraries/TokenHelper.sol";
 import {PMath} from "../../libraries/math/PMath.sol";
 import {console} from "forge-std/console.sol";
+import {ISY} from "../../../interfaces/core/ISY.sol";
 
 /**
  * @dev InterestIndex in this contract represents interest per share
@@ -52,7 +53,15 @@ abstract contract InterestManager is TokenHelper {
     ) internal returns (uint256 interestAmount) {
         interestAmount = s_userInterest[user].accrued;
         s_userInterest[user].accrued = 0;
-        _transferOut(SY, user, interestAmount);
+        // _transferOut(SY, user, interestAmount);
+
+        interestAmount = ISY(SY).redeem(
+            user,
+            interestAmount,
+            ISY(SY).yieldToken(),
+            0,
+            false
+        );
     }
 
     function _distributeInterestPrivate(
@@ -78,6 +87,7 @@ abstract contract InterestManager is TokenHelper {
         internal
         returns (uint256 globalInterestIndex)
     {
+        // Important: commented out for testing purposes
         if (block.number != s_lastInterestCollectedBlock) {
             uint256 totalShares = _ytSupply();
             uint256 interestAccrued = _collectInterest();
