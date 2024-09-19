@@ -5,8 +5,12 @@ import {Script} from "forge-std/Script.sol";
 import {console} from "forge-std/console.sol";
 
 // Mocks
-import {WstEth, StEth} from "../../src/mocks/WstEth.mock.sol";
+import {WstEth, StETH} from "../../src/mocks/WstEth.mock.sol";
 import {Cdai, DAI} from "../../src/mocks/Cdai.mock.sol";
+import {AUsdc, USDC} from "../../src/mocks/AUsdc.mock.sol";
+import {LBtc, WBTC} from "../../src/mocks/LBtc.mock.sol";
+import {SfPepe, Pepe} from "../../src/mocks/SfPepe.mock.sol";
+import {GLP} from "../../src/mocks/GLP.mock.sol";
 
 /**
  * @title Network Helper config
@@ -48,20 +52,35 @@ contract HelperConfig is Script {
     //////////////////////////////////////////////////////////////*/
 
     function getLocalConfig() internal returns (NetworkConfig memory) {
-        address[] memory yieldBearingTokens = new address[](2);
+        address[] memory yieldBearingTokens = new address[](6);
 
         vm.startBroadcast();
 
-        StEth stEth = new StEth();
+        StETH stEth = new StETH();
         WstEth wstEth = new WstEth(address(stEth));
 
         DAI dai = new DAI();
         Cdai cdai = new Cdai(address(dai));
 
+        USDC usdc = new USDC();
+        AUsdc aUsdc = new AUsdc(address(usdc));
+
+        WBTC wbtc = new WBTC();
+        LBtc lBtc = new LBtc(address(wbtc));
+
+        Pepe pepe = new Pepe();
+        SfPepe sfPepe = new SfPepe(address(pepe));
+
+        GLP glp = new GLP();
+
         vm.stopBroadcast();
 
         yieldBearingTokens[0] = address(cdai);
         yieldBearingTokens[1] = address(wstEth);
+        yieldBearingTokens[2] = address(aUsdc);
+        yieldBearingTokens[3] = address(lBtc);
+        yieldBearingTokens[4] = address(sfPepe);
+        yieldBearingTokens[5] = address(glp);
 
         return NetworkConfig({yieldBearingTokens: yieldBearingTokens});
     }

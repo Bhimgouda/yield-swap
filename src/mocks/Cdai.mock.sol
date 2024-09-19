@@ -13,7 +13,7 @@ import {console} from "forge-std/console.sol";
  * @dev This is a GYGP model YBT (Yield Bearing Token) but with 8 decimals
  */
 
-contract Cdai is ERC20("Compound DAI", "CDAI") {
+contract Cdai is ERC20("Compound DAI", "cDAI") {
     using PMath for uint256;
 
     address public immutable i_dai;
@@ -53,7 +53,7 @@ contract Cdai is ERC20("Compound DAI", "CDAI") {
     // To mock interest accrual
     function addInterest() external {
         if (totalSupply() > 0) {
-            s_daiBalance += totalSupply().mulDown(5e15); // equivalent to adding 5% interest
+            s_daiBalance += totalSupply().mulDown(5e12); // equivalent to adding 5% interest
         }
     }
 

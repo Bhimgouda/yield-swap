@@ -11,7 +11,7 @@ import {console} from "forge-std/console.sol";
  * @dev This is a GYGP model YBT (Yield Bearing Token)
  */
 
-contract LBTC is ERC20("Lombard BTC (CORN)", "lBTC") {
+contract LBtc is ERC20("Lombard BTC (CORN)", "lBTC") {
     using PMath for uint256;
 
     address private immutable i_wBTC;
@@ -43,7 +43,7 @@ contract LBTC is ERC20("Lombard BTC (CORN)", "lBTC") {
     }
 
     // Used in SY implementation to get exchange rate
-    function getwBTCByLBTC(uint256 lBTCAmount) external view returns (uint256) {
+    function getWBTCByLBtc(uint256 lBTCAmount) external view returns (uint256) {
         if (totalSupply() > 0) {
             return lBTCAmount.mulDown(s_wBTCBalance.divDown(totalSupply()));
         } else {
@@ -54,7 +54,7 @@ contract LBTC is ERC20("Lombard BTC (CORN)", "lBTC") {
     // To mock interest accrual
     function addInterest() external {
         if (totalSupply() > 0) {
-            s_wBTCBalance += totalSupply().mulDown(5e15); // equivalent to adding 5% interest
+            s_wBTCBalance += totalSupply().mulDown(5e12); // equivalent to adding 5% interest
         }
     }
 

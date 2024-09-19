@@ -16,7 +16,9 @@ contract TestYT is TestYield {
         public
         returns (uint256 amountPt, uint256 amountYt)
     {
+        console.log("exchangeRate", SY.exchangeRate());
         (amountPt, amountYt) = YT.previewStripSy(AMOUNT_SY);
+        console.log("exchangeRate", SY.exchangeRate());
         uint256 expectedAmountPt = AMOUNT_SY.mulDown(SY.exchangeRate());
 
         assertEq(amountPt, amountYt, "Unequal amounts of PT and YT");

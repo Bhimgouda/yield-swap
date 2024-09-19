@@ -24,14 +24,24 @@ contract TestMarketRouter is TestMarketSetup {
     }
 
     function test() external prank(USER_0) {
-        marketRouter.previewSwapExactYbtForPt(
+        uint256 amountPtOut = marketRouter.previewSwapExactYbtForPt(
             address(SY),
             address(SY.yieldToken()),
             address(market),
-            1e18,
-            1023974110356682720,
-            1023974110356692725,
-            0
+            1e18 // amountYbtIn
         );
+
+        console.log(amountPtOut - PMath.ONE);
+    }
+
+    function test2() external prank(USER_0) {
+        uint256 amountYtOut = marketRouter.swapExactYbtForYt(
+            address(SY),
+            address(SY.yieldToken()),
+            address(market),
+            1e18 // amountYbtIn
+        );
+
+        console.log(amountYtOut);
     }
 }

@@ -58,7 +58,7 @@ contract SfPepe is ERC20("Sophon Pepe", "sfPEPE") {
     // To mock interest accrual
     function addInterest() external {
         if (totalSupply() > 0) {
-            s_pepeBalance += totalSupply().mulDown(5e15); // equivalent to adding 5% interest
+            s_pepeBalance += totalSupply().mulDown(5e12); // equivalent to adding 5% interest
         }
     }
 

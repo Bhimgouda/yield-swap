@@ -56,7 +56,7 @@ contract AUsdc is ERC20("Aave USDC", "aUSDC") {
     // To mock interest accrual
     function addInterest() external {
         if (totalSupply() > 0) {
-            s_usdcBalance += totalSupply().mulDown(5e15); // equivalent to adding 5% interest
+            s_usdcBalance += totalSupply().mulDown(5e12); // equivalent to adding 5% interest
         }
     }
 
@@ -66,7 +66,7 @@ contract AUsdc is ERC20("Aave USDC", "aUSDC") {
     }
 }
 
-contract Usdc is ERC20("USDC", "USDC") {
+contract USDC is ERC20("USDC", "USDC") {
     function mint(address user, uint256 amount) external {
         _mint(user, amount);
     }

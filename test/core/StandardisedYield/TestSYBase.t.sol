@@ -7,7 +7,7 @@ import {console} from "forge-std/console.sol";
 import {IERC20} from "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 import {IWstEth} from "../../../src/interfaces/core/IWstEth.sol";
 
-import {DeploySYWstEth} from "../../../script/SY/DeploySYWstEth.sol";
+import {DeploySYWstEth} from "../../../script/SY/DeploySYWstEth.s.sol";
 import {ISY} from "../../../src/interfaces/core/ISY.sol";
 
 /**

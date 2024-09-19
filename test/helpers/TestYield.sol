@@ -11,8 +11,9 @@ import {IYT} from "../../src/interfaces/core/IYT.sol";
 import {IPT} from "../../src/interfaces/core/IPT.sol";
 import {IYBT} from "../../src/interfaces/core/IYBT.sol";
 
-import {DeploySYWstEth} from "../../script/SY/DeploySYWstEth.sol";
+import {DeploySYWstEth} from "../../script/SY/DeploySYWstEth.s.sol";
 import {DeploySYCompound} from "../../script/SY/DeploySYCompound.s.sol";
+import {DeploySYGlp} from "../../script/SY/DeploySYGlp.s.sol";
 
 import {DeployPtYtFactory} from "../../script/DeployPtYtFactory.s.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
@@ -31,7 +32,7 @@ contract TestYield is TestBase {
     IPT internal PT;
 
     function _yieldTestSetup() internal {
-        _deploySYWstEth();
+        _deploySYGlp();
         _deployPtYtFactory();
         _createPtYt();
     }
@@ -47,6 +48,14 @@ contract TestYield is TestBase {
     function _deploySYCompound() internal {
         DeploySYCompound deploySYCompound = new DeploySYCompound();
         SY = ISY(deploySYCompound.run());
+
+        YBT = IYBT(ISY(SY).yieldToken());
+        (, ybtUnderlying, ) = ISY(SY).assetInfo();
+    }
+
+    function _deploySYGlp() internal {
+        DeploySYGlp deploySYGlp = new DeploySYGlp();
+        SY = ISY(deploySYGlp.run());
 
         YBT = IYBT(ISY(SY).yieldToken());
         (, ybtUnderlying, ) = ISY(SY).assetInfo();

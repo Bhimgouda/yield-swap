@@ -6,7 +6,7 @@ import {ISY} from "../interfaces/core/ISY.sol";
 import {Market} from "../core/Market/Market.sol";
 import {MarketMath, MarketState, PMath} from "../core/Market/MarketMath.sol";
 import {IERC20} from "@openzeppelin/contracts/interfaces/IERC20.sol";
-import {MarketApproxLib, ApproxParams} from "./MarketApproxLib.sol";
+import {BinarySearchApprox} from "./BinarSearchApproxLib.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -67,6 +67,31 @@ contract MarketRouter {
         );
     }
 
+    /**
+     * @notice 1. Takes YBT and converts it to SY
+     *         2. Takes SY ->
+     */
+    function swapExactYbtForYt(
+        address SY,
+        address ybtTokenIn,
+        address market,
+        uint256 amountYbtIn
+    ) external returns (uint256 amountYtOut) {
+        MarketState memory marketState = Market(market).readState();
+        uint256 currentSyExchangeRate = Market(market).currentSyExchangeRate();
+
+        uint256 amountSyIn = ISY(SY).previewDeposit(ybtTokenIn, amountYbtIn);
+        (amountYtOut, ) = BinarySearchApprox.approxSwapExactSyForYt(
+            marketState,
+            currentSyExchangeRate,
+            amountSyIn
+        );
+    }
+
+    function swapExactYtForYbt() external returns (uint256 amountYbtOut) {}
+
+    //  Read
+
     function previewSwapExactPtForYbt(
         address SY,
         address ybtTokenOut,
@@ -87,35 +112,17 @@ contract MarketRouter {
         address SY,
         address ybtTokenIn,
         address market,
-        uint256 amountYbtIn,
-        uint256 guessMin,
-        uint256 guessMax,
-        uint256 guessOffchain
+        uint256 amountYbtIn
     ) public returns (uint256 amountPtOut) {
         MarketState memory marketState = Market(market).readState();
         uint256 currentSyExchangeRate = Market(market).currentSyExchangeRate();
 
         uint256 amountSyIn = ISY(SY).previewDeposit(ybtTokenIn, amountYbtIn);
-        (amountPtOut, ) = MarketApproxLib.approxSwapExactSyForPt(
+
+        (amountPtOut, ) = BinarySearchApprox.approxSwapExactSyForPt(
             marketState,
             currentSyExchangeRate,
-            amountSyIn,
-            getApproxParams(guessMin, guessMax, guessOffchain)
+            amountSyIn
         );
-    }
-
-    function getApproxParams(
-        uint256 guessMin,
-        uint256 guessMax,
-        uint256 guessOffchain
-    ) private pure returns (ApproxParams memory approxParams) {
-        // These are the general params for the approximation
-        approxParams = ApproxParams({
-            guessMin: guessMin,
-            guessMax: guessMax,
-            guessOffchain: guessOffchain,
-            maxIteration: 30,
-            eps: PMath.ONE / 10 ** 5
-        });
     }
 }

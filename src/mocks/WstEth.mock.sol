@@ -58,7 +58,7 @@ contract WstEth is ERC20("Wrapped LST Lido", "wstETH") {
     // To mock interest accrual
     function addInterest() external {
         if (totalSupply() > 0) {
-            s_stEthBalance += totalSupply().mulDown(5e15); // equivalent to adding 5% interest
+            s_stEthBalance += totalSupply().mulDown(5e12); // equivalent to adding 5% interest
         }
     }
 
@@ -68,7 +68,7 @@ contract WstEth is ERC20("Wrapped LST Lido", "wstETH") {
     }
 }
 
-contract StEth is ERC20("Staked Liquid Ether", "StEth") {
+contract StETH is ERC20("Staked Liquid Ether", "StEth") {
     function mint(address user, uint256 amount) external {
         _mint(user, amount);
     }
