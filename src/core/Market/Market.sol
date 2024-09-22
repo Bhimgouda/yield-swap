@@ -8,6 +8,8 @@ import {ISY} from "../../interfaces/core/ISY.sol";
 import {IPT} from "../../interfaces/core/IPT.sol";
 import {IYT} from "../../interfaces/core/IYT.sol";
 import {MarketFactory} from "./MarketFactory.sol";
+import {TokenHelper} from "../libraries/TokenHelper.sol";
+import {MarketRouter} from "../../router/MarketRouter.sol";
 
 import {console} from "forge-std/console.sol";
 
@@ -19,13 +21,8 @@ import {console} from "forge-std/console.sol";
  *
  */
 
-contract Market is LPToken {
+contract Market is LPToken, TokenHelper {
     using MarketMath for MarketState;
-
-    //////////////////////
-    // ERRORS
-    ///////////////////////
-    error Market__InsufficientSyAllowance(uint256 required);
 
     ///////////////////////
     // CONSTANTS
@@ -78,7 +75,7 @@ contract Market is LPToken {
     }
 
     /**
-     *
+     * @notice syDesired & ptDesired must be transferred to this contract before calling this function
      * @notice This function also sets initialImpliedRate when totalLp is 0
      *
      * @dev Effects totalLp, totalPt, totalSy & lastLnimpliedRate(initially)
@@ -92,15 +89,17 @@ contract Market is LPToken {
         notExpired
         returns (uint256 lpOut, uint256 syUsed, uint256 ptUsed)
     {
-        address pool = address(this);
-
         MarketState memory market = readState();
 
         (lpOut, syUsed, ptUsed) = market.addLiquidity(syDesired, ptDesired);
 
-        // Tranfer PT & SY tokens to contract
-        SY.transferFrom(msg.sender, pool, syUsed);
-        PT.transferFrom(msg.sender, pool, ptUsed);
+        // checking if syUsed & ptUsed are transferred to this contracts
+        if (_selfBalance(SY) < s_totalSy + syUsed) {
+            revert("Insufficient SY Recieved here");
+        }
+        if (_selfBalance(PT) < s_totalPt + ptUsed) {
+            revert("Insufficient PT Recieved");
+        }
 
         // If totalLp is 0, Set initialImpliedRate & mint MIN_LP to reserve
         if (market.totalLp == 0) {
@@ -125,17 +124,27 @@ contract Market is LPToken {
         s_totalPt += ptUsed;
     }
 
+    /**
+     *
+     * @notice lpToRemove must be transferred to this contract before calling this function
+     */
     function removeLiquidity(
-        address receiver,
+        address syReceiver,
+        address ptReceiver,
         uint256 lpToRemove
     ) external returns (uint256 syOut, uint256 ptOut) {
+        // checking if lpToRemove is transferred to this contracts
+        if (balanceOf(address(this)) < lpToRemove) {
+            revert("Insufficient LP Recieved");
+        }
+
         MarketState memory market = readState();
 
         (syOut, ptOut) = market.removeLiquidity(lpToRemove);
 
-        _burn(msg.sender, lpToRemove);
-        SY.transfer(receiver, syOut);
-        PT.transfer(receiver, ptOut);
+        _burn(address(this), lpToRemove);
+        SY.transfer(syReceiver, syOut);
+        PT.transfer(ptReceiver, ptOut);
 
         // Update Reserves
         s_totalSy -= syOut;
@@ -149,13 +158,14 @@ contract Market is LPToken {
         - The amountSy will be precomputed by MarketMath
         - amountSy will be transeferred to the reciever
 
+     * @notice Calculated amountSyIn must be transferred to this contract before calling this function
      * @notice The impliedRate get's changed
      */
     function swapSyForExactPt(
         address receiver,
-        uint256 amountPtOut
+        uint256 amountPtOut,
+        bytes calldata data
     ) external returns (uint256 amountSyIn, uint256 amountSyFee) {
-        address pool = address(this);
         MarketState memory market = readState();
         address treasury = MarketFactory(i_factory).treasury();
 
@@ -169,18 +179,26 @@ contract Market is LPToken {
         ) = market.swapSyForExactPt(amountPtOut, currentSyExchangeRate());
 
         // Write market state changes
-        s_totalSy += amountSyIn;
+        s_totalSy += amountSyIn - amountSyToReserve;
         s_totalPt -= amountPtOut;
         s_lastLnImpliedRate = updatedLnImpliedRate;
 
-        if (SY.allowance(msg.sender, address(this)) < amountSyIn) {
-            revert Market__InsufficientSyAllowance(amountSyIn);
-        }
-
         // Token transfers
-        SY.transferFrom(msg.sender, pool, amountSyIn);
         PT.transfer(receiver, amountPtOut);
         SY.transfer(treasury, amountSyToReserve);
+
+        if (data.length > 0) {
+            MarketRouter(msg.sender).swapCallback(
+                amountPtOut,
+                amountSyIn + amountSyFee,
+                data
+            );
+        }
+
+        // check if amountSyIn is transferred to this contracts
+        if (_selfBalance(SY) < s_totalSy) {
+            revert("Insufficient SY Recieved");
+        }
     }
 
     /**
@@ -190,13 +208,14 @@ contract Market is LPToken {
         - The amountSy will be precomputed by MarketMath
         - amountSy will be transeferred to the reciever
 
+     * @notice amountPtIn must be transferred to this contract before calling this function   
      * @notice The impliedRate get's changed
      */
     function swapExactPtForSy(
         address receiver,
-        uint256 amountPtIn
+        uint256 amountPtIn,
+        bytes calldata data
     ) external notExpired returns (uint256 amountSyOut, uint256 amountSyFee) {
-        address pool = address(this);
         MarketState memory market = readState();
         address treasury = MarketFactory(i_factory).treasury();
 
@@ -215,9 +234,21 @@ contract Market is LPToken {
         s_lastLnImpliedRate = updatedLnImpliedRate;
 
         // Token transfers
-        PT.transferFrom(msg.sender, pool, amountPtIn);
         SY.transfer(receiver, amountSyOut);
         SY.transfer(treasury, amountSyToReserve);
+
+        if (data.length > 0) {
+            MarketRouter(msg.sender).swapCallback(
+                amountPtIn,
+                amountSyOut,
+                data
+            );
+        }
+
+        // check if amountPtIn is transferred to this contracts
+        if (_selfBalance(PT) < s_totalPt) {
+            revert("Insufficient PT Recieved");
+        }
     }
 
     function currentSyExchangeRate() public returns (uint256) {

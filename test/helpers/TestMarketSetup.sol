@@ -17,8 +17,8 @@ contract TestMarketSetup is TestYield {
     using LogExpMath for uint256;
 
     // These are co-related, and calculated off-chain
-    uint256 private constant SCALAR_ROOT = 54930000000000000000;
-    uint256 private constant INITIAL_ANCHOR = 1040000000000000000;
+    uint256 private constant SCALAR_ROOT = 8722600000000000000;
+    uint256 private constant INITIAL_ANCHOR = 1188100000000000000;
     uint256 private constant LN_FEE_RATE_ROOT = 499875041000000;
     uint256 internal constant EXPIRY = 365 days;
 
@@ -62,11 +62,11 @@ contract TestMarketSetup is TestYield {
 
         _mintSYForUser(address(SY), USER_0, totalSy);
 
-        SY.approve(address(YT), amountSyToMintPt);
-        (uint256 amountPt, ) = YT.stripSy(USER_0, amountSyToMintPt);
+        SY.transfer(address(YT), amountSyToMintPt);
+        (uint256 amountPt, ) = YT.stripSy(USER_0, USER_0, amountSyToMintPt);
 
-        PT.approve(address(market), amountPt);
-        SY.approve(address(market), amountSyForPool);
+        PT.transfer(address(market), amountPt);
+        SY.transfer(address(market), amountSyForPool);
 
         market.addLiquidity(USER_0, amountSyForPool, amountPt);
     }

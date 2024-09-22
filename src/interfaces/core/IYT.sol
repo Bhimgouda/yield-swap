@@ -17,7 +17,8 @@ interface IYT is IERC20Metadata {
     function syReserve() external view returns (uint256);
 
     function stripSy(
-        address receiver,
+        address receiverPt,
+        address receiverYt,
         uint256 amountSy
     ) external returns (uint256 amountPt, uint256 amountYt);
 

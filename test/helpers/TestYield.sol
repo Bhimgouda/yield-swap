@@ -32,7 +32,7 @@ contract TestYield is TestBase {
     IPT internal PT;
 
     function _yieldTestSetup() internal {
-        _deploySYGlp();
+        _deploySYWstEth();
         _deployPtYtFactory();
         _createPtYt();
     }

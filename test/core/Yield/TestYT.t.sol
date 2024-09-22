@@ -16,9 +16,8 @@ contract TestYT is TestYield {
         public
         returns (uint256 amountPt, uint256 amountYt)
     {
-        console.log("exchangeRate", SY.exchangeRate());
         (amountPt, amountYt) = YT.previewStripSy(AMOUNT_SY);
-        console.log("exchangeRate", SY.exchangeRate());
+
         uint256 expectedAmountPt = AMOUNT_SY.mulDown(SY.exchangeRate());
 
         assertEq(amountPt, amountYt, "Unequal amounts of PT and YT");
@@ -88,7 +87,7 @@ contract TestYT is TestYield {
         _afterExpiry();
 
         vm.expectRevert();
-        YT.stripSy(USER_0, AMOUNT_SY);
+        YT.stripSy(USER_0, USER_0, AMOUNT_SY);
     }
 
     function testRedeemSyTransfersSyToUser() external prank(USER_0) {
@@ -100,6 +99,7 @@ contract TestYT is TestYield {
         uint256 startSyBalanceOfUser = SY.balanceOf(USER_0);
 
         // Act
+        PT.transfer(address(YT), amountPt);
         YT.redeemSy(USER_0, amountPt);
 
         // Assert
@@ -122,22 +122,17 @@ contract TestYT is TestYield {
         _afterExpiry();
 
         uint256 startPtBalanceOfUser = PT.balanceOf(USER_0);
-        uint256 startYtBalanceOfUser = YT.balanceOf(USER_0);
         uint256 startPtTotalSupply = PT.totalSupply();
-        uint256 startYtTotalSupply = YT.totalSupply();
 
         // Act
+        PT.transfer(address(YT), amountPt);
         YT.redeemSy(USER_0, amountPt);
 
         uint256 endPtBalanceOfUser = PT.balanceOf(USER_0);
-        uint256 endYtBalanceOfUser = YT.balanceOf(USER_0);
         uint256 endPtTotalSupply = PT.totalSupply();
-        uint256 endYtTotalSupply = YT.totalSupply();
 
         assertEq(startPtBalanceOfUser - endPtBalanceOfUser, amountPt);
-        assertEq(startYtBalanceOfUser - endYtBalanceOfUser, amountPt);
         assertEq(startPtTotalSupply - endPtTotalSupply, amountPt);
-        assertEq(startYtTotalSupply - endYtTotalSupply, amountPt);
     }
 
     function testRedeemSyBeforeExpiryRedeemsAdjustedSy()
@@ -149,6 +144,8 @@ contract TestYT is TestYield {
 
         uint256 startSyBalanceOfUser = SY.balanceOf(USER_0);
 
+        PT.transfer(address(YT), amountPt);
+        YT.transfer(address(YT), amountYt);
         YT.redeemSyBeforeExpiry(USER_0, amountPt, amountYt);
 
         uint256 endSyBalanceOfUser = SY.balanceOf(USER_0);
@@ -184,8 +181,8 @@ contract TestYT is TestYield {
         uint256 amountSy
     ) internal returns (uint256 amountPt, uint256 amountYt) {
         _mintSYForUser(address(SY), USER_0, amountSy);
-        SY.approve(address(YT), amountSy);
-        (amountPt, amountYt) = YT.stripSy(user, amountSy);
+        SY.transfer(address(YT), amountSy);
+        (amountPt, amountYt) = YT.stripSy(user, user, amountSy);
     }
 
     function _afterExpiry() internal {

@@ -25,13 +25,15 @@ contract TestYTRouter is TestYield {
 
     function _mintYtForUser() internal {
         _mintSYForUser(address(SY), USER_0, AMOUNT_SY);
-        SY.approve(address(YT), AMOUNT_SY);
-        (, amountYt) = YT.stripSy(USER_0, AMOUNT_SY);
+        SY.transfer(address(YT), AMOUNT_SY);
+        (, amountYt) = YT.stripSy(USER_0, USER_0, AMOUNT_SY);
     }
 
     function testPreviewDueInterest() external prank(USER_0) {
         _mintYtForUser();
 
+        _addInterest();
+        _addInterest();
         _addInterest();
 
         console.log("prevYbtBalance", YBT.balanceOf(USER_0));

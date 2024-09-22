@@ -38,6 +38,9 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     // Interest Related
     uint256 private s_lastInterestCollectedExchangeRate;
 
+    // Internal balance of SY
+    uint256 private s_syReserve;
+
     constructor(
         address _SY,
         address _PT,
@@ -61,16 +64,25 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         _;
     }
 
+    /**
+     * @notice amountSy must be transferred to this contract before calling this function
+     */
     function stripSy(
-        address receiver,
+        address receiverPt,
+        address receiverYt,
         uint256 amountSy
     ) external notExpired returns (uint256 amountPt, uint256 amountYt) {
-        ISY(SY).transferFrom(msg.sender, address(this), amountSy);
+        if (_selfBalance(SY) < s_syReserve + amountSy) {
+            revert("Insufficient SY Recieved");
+        }
 
         (amountYt, amountPt) = previewStripSy(amountSy);
 
-        _mint(receiver, amountYt);
-        IPT(PT).mintByYt(receiver, amountPt);
+        _mint(receiverYt, amountYt);
+        IPT(PT).mintByYt(receiverPt, amountPt);
+
+        // Update SY reserve
+        s_syReserve += amountSy;
     }
 
     /**
@@ -103,8 +115,15 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
     ) external returns (uint256 interestOut) {
         _updateAndDistributeInterest(user);
         interestOut = _doTransferOutInterest(user, SY);
+
+        // Update SY reserve
+        s_syReserve -= interestOut;
     }
 
+    /**
+     * @notice amountPt & amountYt must be transferred to this contract before calling this function
+     *
+     */
     function _redeemSy(
         address receiver,
         uint256 amountPt,
@@ -113,13 +132,25 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
         if (!isExpired()) {
             // Considering the minimum to be burnt
             (amountPt, amountYt) = _getAdjustedPtYt(amountPt, amountYt);
+
+            if (balanceOf(address(this)) < amountYt) {
+                revert("Insufficient YT Transferred");
+            }
+
+            _burn(address(this), amountYt);
         }
 
-        IPT(PT).burnByYt(msg.sender, amountPt);
-        _burn(msg.sender, amountYt);
+        if (_selfBalance(PT) < amountPt) {
+            revert("Insufficient PT Transferred");
+        }
+
+        IPT(PT).burnByYt(address(this), amountPt);
 
         amountSy = previewRedeemSy(amountPt);
         ISY(SY).transfer(receiver, amountSy);
+
+        // Update SY reserve
+        s_syReserve -= amountSy;
     }
 
     function _getAdjustedPtYt(
@@ -208,6 +239,8 @@ contract YieldToken is ERC20, InterestManager, RewardManager {
                 : IPtYtFactory(i_factory).interestFeeRate();
             uint256 interestFeeAmount = totalInterest.mulDown(interestFeeRate);
             _transferOut(SY, treaury, interestFeeAmount);
+            // Update SY reserve
+            s_syReserve -= interestFeeAmount;
 
             interestAccrued = totalInterest - interestFeeAmount;
             s_lastInterestCollectedExchangeRate = _currentSyExchangeRate;

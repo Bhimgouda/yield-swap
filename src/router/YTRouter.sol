@@ -18,15 +18,20 @@ contract YTRouter {
         address tokenIn,
         uint256 amountToken
     ) external returns (uint256 amountPt, uint256 amountYt) {
+        address _msgSender = msg.sender;
         address self = address(this);
 
         // Tranfer Token In & Approve
-        IERC20(tokenIn).transferFrom(msg.sender, self, amountToken);
+        IERC20(tokenIn).transferFrom(_msgSender, self, amountToken);
         IERC20(tokenIn).approve(SY, amountToken);
-        uint256 amountSy = ISY(SY).deposit(self, tokenIn, amountToken, 0); // Need to check 0 later
+        uint256 amountSy = ISY(SY).deposit(YT, tokenIn, amountToken, 0); // Need to check 0 later
 
-        IERC20(SY).approve(YT, amountSy);
-        (amountPt, amountYt) = IYT(YT).stripSy(msg.sender, amountSy);
+        // amountSyIn is transferred to the YT contract before calling this function
+        (amountPt, amountYt) = IYT(YT).stripSy(
+            _msgSender,
+            _msgSender,
+            amountSy
+        );
     }
 
     /**
@@ -40,18 +45,20 @@ contract YTRouter {
         address tokenOut,
         uint256 amountPt
     ) external returns (uint256 amountToken) {
-        address reciever = msg.sender;
+        address _msgSender = msg.sender;
         address self = address(this);
 
-        IERC20(PT).transferFrom(reciever, self, amountPt);
+        IERC20(PT).transferFrom(_msgSender, YT, amountPt);
+
+        // amountPt is transferred to the YT contract before calling this function
         uint256 amountSy = IYT(YT).redeemSy(self, amountPt);
 
-        amountToken = ISY(SY).redeem(reciever, amountSy, tokenOut, 0, false);
+        amountToken = ISY(SY).redeem(_msgSender, amountSy, tokenOut, 0, false);
     }
 
     /**
      *
-     * @notice Please approve amountPt to this contract before calling this function
+     * @notice Please approve amountPt & amountYt to this contract before calling this function
      */
     function redeemBeforeExpiry(
         address SY,
@@ -61,18 +68,20 @@ contract YTRouter {
         uint256 amountPt,
         uint256 amountYt
     ) external returns (uint256 amountToken) {
-        address reciever = msg.sender;
+        address _msgSender = msg.sender;
         address self = address(this);
 
-        IERC20(PT).transferFrom(reciever, self, amountPt);
-        IERC20(YT).transferFrom(reciever, self, amountYt);
+        IERC20(PT).transferFrom(_msgSender, YT, amountPt);
+        IERC20(YT).transferFrom(_msgSender, YT, amountYt);
+
+        // amountPt & amountYt are transferred to the YT contract before calling this function
         uint256 amountSy = IYT(YT).redeemSyBeforeExpiry(
             self,
             amountPt,
             amountYt
         );
 
-        amountToken = ISY(SY).redeem(reciever, amountSy, tokenOut, 0, false);
+        amountToken = ISY(SY).redeem(_msgSender, amountSy, tokenOut, 0, false);
     }
 
     function previewStrip(

@@ -73,7 +73,7 @@ contract TestYTInterestManager is TestYield {
     ) internal returns (uint256 amountPt, uint256 amountYt) {
         _mintSYForUser(address(SY), USER_0, amountSy);
         SY.approve(address(YT), amountSy);
-        (amountPt, amountYt) = YT.stripSy(user, amountSy);
+        (amountPt, amountYt) = YT.stripSy(user, user, amountSy);
     }
 
     function _calcInterestWithFee(

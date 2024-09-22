@@ -4,8 +4,10 @@ pragma solidity 0.8.19;
 import {SYBase} from "../../SYBase.sol";
 import {IERC20Metadata} from "@openzeppelin/contracts/token/ERC20/extensions/IERC20Metadata.sol";
 import {console} from "forge-std/console.sol";
+import {PMath} from "../../../libraries/math/PMath.sol";
 
 contract SYGlp is SYBase {
+    using PMath for uint256;
     // Yield Bearing Token Address
     address private immutable i_glp;
 
@@ -65,9 +67,9 @@ contract SYGlp is SYBase {
      */
     function exchangeRate() external view override returns (uint256 res) {
         if (totalSupply() > 0) {
-            res =
-                IERC20Metadata(i_glp).balanceOf(address(this)) /
-                totalSupply();
+            res = IERC20Metadata(i_glp).balanceOf(address(this)).divDown(
+                totalSupply()
+            );
         } else {
             res = 1e18;
         }

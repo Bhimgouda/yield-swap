@@ -23,25 +23,50 @@ contract TestMarketRouter is TestMarketSetup {
         marketRouter = MarketRouter(deployMarketRouter.run());
     }
 
-    function test() external prank(USER_0) {
-        uint256 amountPtOut = marketRouter.previewSwapExactYbtForPt(
-            address(SY),
-            address(SY.yieldToken()),
-            address(market),
-            1e18 // amountYbtIn
-        );
+    // function test() external prank(USER_0) {
+    //     uint256 amountPtOut = marketRouter.previewSwapExactYbtForPt(
+    //         address(address(SY)),(
+    //         address(SY.yieldToken()),
+    //         address(market),
+    //         1e18 // amountYbtIn
+    //     );
 
-        console.log(amountPtOut - PMath.ONE);
-    }
+    //     console.log(amountPtOut - PMath.ONE);
+    // }
 
-    function test2() external prank(USER_0) {
-        uint256 amountYtOut = marketRouter.swapExactYbtForYt(
+    function testSwapExactYbtForYt()
+        public
+        prank(USER_0)
+        returns (uint256 amountYtOut)
+    {
+        uint256 amountYbtIn = 1e18;
+
+        _mintYbtForUser(address(YBT), USER_0, amountYbtIn);
+
+        YBT.approve(address(marketRouter), amountYbtIn);
+        amountYtOut = marketRouter.swapExactYbtForYt(
             address(SY),
-            address(SY.yieldToken()),
+            address(YBT),
             address(market),
-            1e18 // amountYbtIn
+            amountYbtIn
         );
 
         console.log(amountYtOut);
+    }
+
+    function testSwapExactYtForSy() external {
+        uint256 amountYtIn = testSwapExactYbtForYt();
+
+        vm.startPrank(USER_0);
+
+        YT.approve(address(marketRouter), amountYtIn);
+        uint256 amountSyOut = marketRouter.swapExactYtForYbt(
+            address(SY),
+            address(YBT),
+            address(market),
+            amountYtIn
+        );
+
+        vm.stopPrank();
     }
 }

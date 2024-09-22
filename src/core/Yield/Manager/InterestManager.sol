@@ -55,13 +55,8 @@ abstract contract InterestManager is TokenHelper {
         s_userInterest[user].accrued = 0;
         // _transferOut(SY, user, interestAmount);
 
-        interestAmount = ISY(SY).redeem(
-            user,
-            interestAmount,
-            ISY(SY).yieldToken(),
-            0,
-            false
-        );
+        // Intentional
+        ISY(SY).redeem(user, interestAmount, ISY(SY).yieldToken(), 0, false);
     }
 
     function _distributeInterestPrivate(

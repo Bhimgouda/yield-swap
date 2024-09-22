@@ -4,7 +4,7 @@ pragma solidity 0.8.19;
 import {MarketMath, MarketState, PMath, LogExpMath, MarketPreCompute} from "../core/Market/MarketMath.sol";
 import {console} from "forge-std/console.sol";
 
-library BinarySearchApprox {
+library MarketApproxLib {
     using MarketMath for MarketState;
     using PMath for uint256;
     using PMath for int256;
@@ -12,6 +12,7 @@ library BinarySearchApprox {
 
     uint256 public constant MAX_ITERATION = 30;
     uint256 public constant EPS = 1e15;
+    uint256 private constant ONE = PMath.ONE;
 
     function approxSwapExactSyForPt(
         MarketState memory market,
@@ -22,40 +23,35 @@ library BinarySearchApprox {
             currentSyExchangeRate
         );
 
-        uint256 guessMin = exactSyIn; // As exchange rate for asset in PT is always above 1
-        uint256 guessMax = calcMaxPtOut(comp, market.totalPt.Int());
-        require(guessMin < guessMax);
+        uint256 guessPtMin = 0;
+        uint256 guessPtMax = _calcMaxPtOut(comp, market.totalPt.Int());
+        require(guessPtMin <= guessPtMax);
 
         for (uint256 iter = 0; iter < MAX_ITERATION; ++iter) {
-            uint256 guess = nextGuess(guessMin, guessMax);
+            uint256 guessPt = _nextGuess(guessPtMin, guessPtMax);
 
-            (uint256 netSyIn, uint256 netSyFee, ) = calcSyIn(
+            (uint256 netSyIn, uint256 netSyFee, ) = _calcSyIn(
                 market,
                 currentSyExchangeRate,
-                guess
+                guessPt
             );
 
             if (netSyIn <= exactSyIn) {
                 if (PMath.isASmallerApproxB(netSyIn, exactSyIn, EPS)) {
-                    return (guess, netSyFee);
+                    return (guessPt, netSyFee);
                 }
 
-                guessMin = guess;
+                guessPtMin = guessPt;
             } else {
-                guessMax = guess - 1;
+                guessPtMax = guessPt - 1;
             }
         }
 
         revert("Slippage: APPROX_EXHAUSTED");
     }
 
-    /**
-     * @notice 1. Flashswap SY (Get more SY)
-     *         2. Mint PT and YT
-     *         3. Payback/Sell PT back to pool
-     *         4. Transfer YT to user
-     */
     function approxSwapExactSyForYt(
+        // Need 1
         MarketState memory market,
         uint256 currentSyExchangeRate,
         uint256 exactSyIn
@@ -64,32 +60,29 @@ library BinarySearchApprox {
             currentSyExchangeRate
         );
 
-        uint256 guessMin = exactSyIn;
-        uint256 guessMax = calcMaxPtIn(market, comp);
-        require(guessMin < guessMax);
+        uint256 guessMin = exactSyIn.mulDown(currentSyExchangeRate);
+        uint256 guessMax = _calcMaxPtIn(market, comp);
+        require(guessMin <= guessMax);
 
         // at minimum we will flashswap exactSyIn since we have enough SY to payback the PT loan
 
-        for (uint256 iter = 0; iter < 1e5; ++iter) {
-            uint256 guess = nextGuess(guessMin, guessMax);
+        for (uint256 iter = 0; iter < MAX_ITERATION; ++iter) {
+            uint256 guess = _nextGuess(guessMin, guessMax);
 
-            (uint256 netSyOut, uint256 netSyFee, ) = calcSyOut(
+            (uint256 netSyOut, uint256 netSyFee, ) = _calcSyOut(
                 market,
                 comp,
                 currentSyExchangeRate,
                 guess
             );
 
-            // uint256 netSyToTokenizePt = (guess *
-            //     PMath.ONE +
-            //     currentSyExchangeRate -
-            //     1) / currentSyExchangeRate;
+            uint256 netSyToTokenizePt = guess.divDown(currentSyExchangeRate);
 
-            // // for sure netSyToTokenizePt >= netSyOut since we are swapping PT to SY
-            // uint256 netSyToPull = netSyToTokenizePt - netSyOut;
+            // for sure netSyToTokenizePt >= netSyOut since we are swapping PT to SY
+            uint256 netSyToPull = netSyToTokenizePt - netSyOut;
 
-            if (netSyOut <= exactSyIn) {
-                if (PMath.isASmallerApproxB(netSyOut, exactSyIn, EPS)) {
+            if (netSyToPull <= exactSyIn) {
+                if (PMath.isASmallerApproxB(netSyToPull, exactSyIn, EPS)) {
                     return (guess, netSyFee);
                 }
                 guessMin = guess;
@@ -100,15 +93,7 @@ library BinarySearchApprox {
         revert("Slippage: APPROX_EXHAUSTED");
     }
 
-    /**
-     * @notice 1. Flashswap PT from pool (Get more PT)
-     *         2. Redeem PT & YT for SY
-     *         3. Payback/Sell SY back to pool
-     *         4. Send excess SY to user
-     */
-    function approxSwapExactYtForSy() internal {}
-
-    function calcMaxPtOut(
+    function _calcMaxPtOut(
         MarketPreCompute memory comp,
         int256 totalPt
     ) internal pure returns (uint256) {
@@ -122,7 +107,7 @@ library BinarySearchApprox {
         return (uint256(maxPtOut) * 999) / 1000;
     }
 
-    function calcMaxPtIn(
+    function _calcMaxPtIn(
         MarketState memory market,
         MarketPreCompute memory comp
     ) internal pure returns (uint256) {
@@ -131,7 +116,7 @@ library BinarySearchApprox {
 
         while (low != hi) {
             uint256 mid = (low + hi + 1) / 2;
-            if (calcSlope(comp, market.totalPt.Int(), int256(mid)) < 0)
+            if (_calcSlope(comp, market.totalPt.Int(), int256(mid)) < 0)
                 hi = mid - 1;
             else low = mid;
         }
@@ -146,7 +131,7 @@ library BinarySearchApprox {
         return low;
     }
 
-    function calcSlope(
+    function _calcSlope(
         MarketPreCompute memory comp,
         int256 totalPt,
         int256 ptToMarket
@@ -166,7 +151,7 @@ library BinarySearchApprox {
         return comp.rateAnchor - (part1 - part2).mulDown(part3);
     }
 
-    function nextGuess(
+    function _nextGuess(
         uint256 guessMin,
         uint256 guessMax
     ) internal pure returns (uint256) {
@@ -174,7 +159,7 @@ library BinarySearchApprox {
         revert("Slippage: guessMin > guessMax");
     }
 
-    function calcSyIn(
+    function _calcSyIn(
         MarketState memory market,
         uint256 currentSyExchangeRate,
         uint256 netPtOut
@@ -189,7 +174,7 @@ library BinarySearchApprox {
         );
     }
 
-    function calcSyOut(
+    function _calcSyOut(
         MarketState memory market,
         MarketPreCompute memory comp,
         uint256 currentSyExchangeRate,
@@ -206,3 +191,33 @@ library BinarySearchApprox {
         );
     }
 }
+
+/** My implementation of approxSwapExactSyForYt */
+/** Which was not very accurate as it was not considering the max sy loan
+ * that could be taken from a pool, considering the amount of sy in the pool
+ */
+
+// function approxSwapExactSyForYt(
+//     MarketState memory market,
+//     uint256 currentSyExchangeRate,
+//     uint256 exactSyIn
+// )
+//     internal
+//     pure
+//     returns (uint256, /* amountYtOut */ uint256 /* amountSyFee */)
+// {
+//     // 1. Get price of PT for 1 asset
+//     // 2. YtPrice = 1 - PtPrice; as 1PT + 1YT = 1 asset
+//     // 3. AmountYt = SYamount / YTPrice
+
+//     (uint256 ptPrice, uint256 amountSyFee, , ) = market.swapExactPtForSy(
+//         1e18,
+//         currentSyExchangeRate
+//     );
+
+//     uint256 ptPriceInAsset = ptPrice.mulDown(currentSyExchangeRate);
+//     uint256 ytPrice = (ONE - ptPriceInAsset).divDown(currentSyExchangeRate);
+
+//     uint256 amountYtOut = exactSyIn.divDown(ytPrice);
+//     return (amountYtOut, amountSyFee);
+// }
